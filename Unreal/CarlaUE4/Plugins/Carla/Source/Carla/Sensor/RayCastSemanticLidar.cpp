@@ -102,6 +102,13 @@ void ARayCastSemanticLidar::SimulateLidar(const float DeltaTime)
   ResetRecordedHits(ChannelCount, PointsToScanWithOneLaser);
   PreprocessRays(ChannelCount, PointsToScanWithOneLaser);
 
+  auto *World = GetWorld();
+  UCarlaGameInstance *GameInstance = UCarlaStatics::GetGameInstance(World);
+  auto *Episode = GameInstance->GetCarlaEpisode();
+  auto *Weather = Episode->GetWeather();
+  FWeatherParameters w = Weather->GetCurrentWeather();
+  srand((unsigned)time( NULL )); //seed the random
+
   GetWorld()->GetPhysicsScene()->GetPxScene()->lockRead();
   ParallelFor(ChannelCount, [&](int32 idxChannel) {
     for (auto idxPtsOneLaser = 0u; idxPtsOneLaser < PointsToScanWithOneLaser; idxPtsOneLaser++) {
@@ -111,7 +118,7 @@ void ARayCastSemanticLidar::SimulateLidar(const float DeltaTime)
           * idxPtsOneLaser, Description.HorizontalFov) - Description.HorizontalFov / 2;
       const bool PreprocessResult = RayPreprocessCondition[idxChannel][idxPtsOneLaser];
 
-      if (PreprocessResult && ShootLaser(VertAngle, HorizAngle, HitResult)) {
+      if (PreprocessResult && ShootLaser(VertAngle, HorizAngle, HitResult, w)) {
         WritePointAsync(idxChannel, HitResult);
       }
     };
@@ -191,7 +198,7 @@ void ARayCastSemanticLidar::ComputeRawDetection(const FHitResult& HitInfo, const
 }
 
 
-bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float HorizontalAngle, FHitResult& HitResult) const
+bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float HorizontalAngle, FHitResult& HitResult, FWeatherParameters w) const
 {
   FCollisionQueryParams TraceParams = FCollisionQueryParams(FName(TEXT("Laser_Trace")), true, this);
   TraceParams.bTraceComplex = true;
@@ -219,10 +226,29 @@ bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float Ho
     FCollisionResponseParams::DefaultResponseParam
   );
 
-  if (HitInfo.bBlockingHit) {
+  if (HitInfo.bBlockingHit) { 
+	  float temp = w.Temperature;
+	  float rain_amount = w.Precipitation;
+	  if (temp < 0) //If it is snowing
+	  {
+		  FVector HitPoint = HitInfo.ImpactPoint;
+		  float random = rand() % 1000; //Generate random number between 0-1000
+		  if (random < rain_amount) //the probability of linetrace to hit snow increases as it snows more
+		  {
+			  //generate new hitpoint
+        FVector start_point = LidarBodyLoc; //start point is lidar position
+        FVector vector = HitPoint - start_point; //vector from start to hitpoint
+        FVector new_start_point = start_point + 0.5 * vector; //make start point away from center of lidar
+        FVector new_vector = HitPoint - new_start_point; //new vector from new start point to hitpoint
+        float r = (float) rand()/RAND_MAX; //random floating number between 0-1
+        FVector target_position = new_start_point + r * new_vector; //Generate new point from new start point to hitpoint
+			  HitPoint = target_position;
+		  }
+		  HitInfo.ImpactPoint = HitPoint; //Either original hitpoint or new one.
+	  }
     HitResult = HitInfo;
     return true;
-  } else {
+  } else { //If no hit is acquired
     return false;
   }
 }
