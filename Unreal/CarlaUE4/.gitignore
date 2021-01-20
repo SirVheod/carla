@@ -13,10 +13,15 @@ Plugins/Carla/DerivedDataCache
 Plugins/Carla/Intermediate
 Plugins/Carla/Saved
 
-/Content/Carla/*
+/Content/Carla/Config
+/Content/Carla/ExportedMaps
+/Content/Carla/HDMaps
+/Content/Carla/hooks
+/Content/Carla/Maps
+/Content/Carla/LICENSE
+/Content/Carla/Static/*
 /Content/Collections
 /Content/Developers
-!/Content/Carla/Blueprints/Weather/
 !/Content/Carla/Static/Particles/
 
 Config/CarlaSettings.ini
