@@ -140,9 +140,9 @@ namespace detail {
     return _pimpl->CallAndWait<std::string>("version");
   }
 
-  void Client::LoadEpisode(std::string map_name, rpc::MapLayer map_layer) {
+  void Client::LoadEpisode(std::string map_name, bool reset_settings, rpc::MapLayer map_layer) {
     // Await response, we need to be sure in this one.
-    _pimpl->CallAndWait<void>("load_new_episode", std::move(map_name), map_layer);
+    _pimpl->CallAndWait<void>("load_new_episode", std::move(map_name), reset_settings, map_layer);
   }
 
   void Client::LoadLevelLayer(rpc::MapLayer map_layer) const {
@@ -328,6 +328,14 @@ namespace detail {
 
   void Client::ApplyControlToVehicle(rpc::ActorId vehicle, const rpc::VehicleControl &control) {
     _pimpl->AsyncCall("apply_control_to_vehicle", vehicle, control);
+  }
+
+  void Client::EnableCarSim(rpc::ActorId vehicle, std::string simfile_path) {
+    _pimpl->AsyncCall("enable_carsim", vehicle, simfile_path);
+  }
+
+  void Client::UseCarSimRoad(rpc::ActorId vehicle, bool enabled) {
+    _pimpl->AsyncCall("use_carsim_road", vehicle, enabled);
   }
 
   void Client::ApplyControlToWalker(rpc::ActorId walker, const rpc::WalkerControl &control) {
