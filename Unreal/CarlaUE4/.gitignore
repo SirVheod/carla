@@ -13,10 +13,12 @@ Plugins/Carla/DerivedDataCache
 Plugins/Carla/Intermediate
 Plugins/Carla/Saved
 
-/Content
-!/Content/Carla/Blueprints/Weather
-!/Content/Carla/Static/Particles
-!/Content/map_package
+/Content/Carla/*
+/Content/Collections
+/Content/Developers
+!/Content/Carla/Blueprints/Weather/
+!/Content/Carla/Static/Particles/
+
 Config/CarlaSettings.ini
 Config/DefaultEditor.ini
 Config/CarSimConfig.ini
