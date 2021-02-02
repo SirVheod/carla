@@ -187,7 +187,6 @@ def get_actor_display_name(actor, truncate=250):
 class World(object):
     def __init__(self, carla_world, hud_wintersim, args):
         self.world = carla_world
-        self.actor_role_name = args.rolename
         try:
             self.map = self.world.get_map()
         except RuntimeError as error:
@@ -209,7 +208,6 @@ class World(object):
         for preset in self._weather_presets_all:
             if preset[0].temperature <= 0: #get only presets what are for wintersim
                 self._weather_presets.append(preset)
-        #self._weather_presets = find_weather_presets()
         self._weather_index = 0
         self._actor_filter = args.filter
         self._gamma = args.gamma
@@ -241,23 +239,8 @@ class World(object):
         # Keep same camera config if the camera manager exists.
         cam_index = self.camera_manager.index if self.camera_manager is not None else 0
         cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
-        # Get a random blueprint.
+        # Get a vehicle according to arg parameter.
         blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
-        blueprint.set_attribute('role_name', self.actor_role_name)
-        if blueprint.has_attribute('color'):
-            color = random.choice(blueprint.get_attribute('color').recommended_values)
-            blueprint.set_attribute('color', color)
-        if blueprint.has_attribute('driver_id'):
-            driver_id = random.choice(blueprint.get_attribute('driver_id').recommended_values)
-            blueprint.set_attribute('driver_id', driver_id)
-        if blueprint.has_attribute('is_invincible'):
-            blueprint.set_attribute('is_invincible', 'true')
-        # set the max speed
-        if blueprint.has_attribute('speed'):
-            self.player_max_speed = float(blueprint.get_attribute('speed').recommended_values[1])
-            self.player_max_speed_fast = float(blueprint.get_attribute('speed').recommended_values[2])
-        else:
-            print("No recommended values for 'speed' attribute")
         # Spawn the player.
         if self.player is not None:
             spawn_point = self.player.get_transform()
@@ -358,10 +341,6 @@ class KeyboardControl(object):
             self._lights = carla.VehicleLightState.NONE
             world.player.set_autopilot(self._autopilot_enabled)
             world.player.set_light_state(self._lights)
-        elif isinstance(world.player, carla.Walker):
-            self._control = carla.WalkerControl()
-            self._autopilot_enabled = False
-            self._rotation = world.player.get_transform().rotation
         else:
             raise NotImplementedError("Actor type not supported")
         self._steer_cache = 0.0
@@ -377,22 +356,15 @@ class KeyboardControl(object):
                 if world.hud_wintersim.is_hud:
                     pos = pygame.mouse.get_pos()
                     for slider in hud_wintersim.sliders:
-                        if slider.button_rect.collidepoint(pos):
-                            slider.hit = True
+                        if slider.button_rect.collidepoint(pos): #get slider what mouse is touching
+                            slider.hit = True #slider is being moved
             elif event.type == pygame.MOUSEBUTTONUP: #slider event
                 if world.hud_wintersim.is_hud:
                     for slider in hud_wintersim.sliders:
-                        slider.hit = False
+                        slider.hit = False #slider moving stopped
             elif event.type == pygame.KEYUP:
                 if self._is_quit_shortcut(event.key):
                     return True
-                elif event.key == K_BACKSPACE:
-                    if self._autopilot_enabled:
-                        world.player.set_autopilot(False)
-                        world.restart()
-                        world.player.set_autopilot(True)
-                    else:
-                        world.restart()
                 elif event.key == K_F1:
                     world.hud_wintersim.toggle_info(world)
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
@@ -512,7 +484,7 @@ class KeyboardControl(object):
 
         if not self._autopilot_enabled:
             if isinstance(self._control, carla.VehicleControl):
-                self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time())
+                self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time(), world)
                 self._control.reverse = self._control.gear < 0
                 # Set automatic control-related vehicle lights
                 if self._control.brake:
@@ -526,19 +498,31 @@ class KeyboardControl(object):
                 if current_lights != self._lights: # Change the light state only if necessary
                     self._lights = current_lights
                     world.player.set_light_state(carla.VehicleLightState(self._lights))
-            elif isinstance(self._control, carla.WalkerControl):
-                self._parse_walker_keys(pygame.key.get_pressed(), clock.get_time(), world)
             world.player.apply_control(self._control)
 
-    def _parse_vehicle_keys(self, keys, milliseconds):
+    def _parse_vehicle_keys(self, keys, milliseconds, world):
+        v = world.player.get_velocity()
+        speed = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
         if keys[K_UP] or keys[K_w]:
-            self._control.throttle = min(self._control.throttle + 0.01, 1)
-        else:
+            if(self._control.gear == -1):
+                self._control.gear = 1
+            if(self._control.reverse):
+                self._control.reverse = False
+            self._control.throttle = min(self._control.throttle + 0.04, 1)
+        elif not self._control.reverse:
             self._control.throttle = 0.0
 
         if keys[K_DOWN] or keys[K_s]:
-            self._control.brake = min(self._control.brake + 0.2, 1)
+            if(int(round(speed)) <= 0 or self._control.reverse):
+                self._control.brake = 0
+                if self._control.gear != -1:
+                    self._control.gear = -1
+                self._control.throttle = min(self._control.throttle + 0.01, 1)
+                self._control.reverse = True
+            elif not self._control.reverse:
+                self._control.brake = min(self._control.brake + 0.2, 1)
         else:
+            self._control.gear = 1
             self._control.brake = 0
 
         steer_increment = 5e-4 * milliseconds
@@ -557,22 +541,6 @@ class KeyboardControl(object):
         self._steer_cache = min(0.7, max(-0.7, self._steer_cache))
         self._control.steer = round(self._steer_cache, 1)
         self._control.hand_brake = keys[K_SPACE]
-
-    def _parse_walker_keys(self, keys, milliseconds, world):
-        self._control.speed = 0.0
-        if keys[K_DOWN] or keys[K_s]:
-            self._control.speed = 0.0
-        if keys[K_LEFT] or keys[K_a]:
-            self._control.speed = .01
-            self._rotation.yaw -= 0.08 * milliseconds
-        if keys[K_RIGHT] or keys[K_d]:
-            self._control.speed = .01
-            self._rotation.yaw += 0.08 * milliseconds
-        if keys[K_UP] or keys[K_w]:
-            self._control.speed = world.player_max_speed_fast if pygame.key.get_mods() & KMOD_SHIFT else world.player_max_speed
-        self._control.jump = keys[K_SPACE]
-        self._rotation.yaw = round(self._rotation.yaw, 1)
-        self._control.direction = self._rotation.get_forward_vector()
 
     @staticmethod
     def _is_quit_shortcut(key):
@@ -1365,7 +1333,7 @@ def main():
     argparser.add_argument(
         '--filter',
         metavar='PATTERN',
-        default='vehicle.*',
+        default='model3',
         help='actor filter (default: "vehicle.*")')
     argparser.add_argument(
         '--rolename',

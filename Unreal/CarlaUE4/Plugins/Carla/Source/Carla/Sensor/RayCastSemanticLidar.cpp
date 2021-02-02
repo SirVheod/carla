@@ -104,7 +104,7 @@ void ARayCastSemanticLidar::SimulateLidar(const float DeltaTime)
   UCarlaGameInstance *GameInstance = UCarlaStatics::GetGameInstance(World);
   auto *Episode = GameInstance->GetCarlaEpisode();
   auto *Weather = Episode->GetWeather();
-  FWeatherParameters w = Weather->GetCurrentWeather();
+  FWeatherParameters w = Weather->GetCurrentWeather(); //current weather
   srand((unsigned)time( NULL )); //seed the random
 
   GetWorld()->GetPhysicsScene()->GetPxScene()->lockRead();
@@ -195,6 +195,38 @@ void ARayCastSemanticLidar::ComputeRawDetection(const FHitResult& HitInfo, const
     }
 }
 
+bool ARayCastSemanticLidar::CalculateNewHitPoint(FHitResult& HitInfo, float rain_amount, FVector end_trace, FVector LidarBodyLoc, FVector distance_to_hit) const
+{
+  FVector start_point = LidarBodyLoc; //start point is lidar position
+  //float hit_max = rain_amount/10000; //from 0.01 -> 1.00
+  float multiplier = 1-rain_amount*0.01; //100 = 0 and 0 = 1
+  FVector max_distance = distance_to_hit;
+  if (HitInfo.bBlockingHit) {//If linetrace hits something 
+    float original_distance = HitInfo.Distance; //distance from start to hitpoint
+    float new_distance = FVector::Dist(LidarBodyLoc, distance_to_hit); // distance from start to 30m
+    if (original_distance < new_distance) //if hitpoint is closer than 30m use that instead
+    {
+      max_distance = HitInfo.ImpactPoint;
+    }
+  } 
+  
+  FVector vector = max_distance - start_point; //vector from start to end
+  FVector new_start_point = start_point + 0.02 * vector; //make start point away from center of lidar
+  FVector end_point = max_distance; //- multiplier * vector; //if it rains 100% max distance to hit snowflake is 30m
+  FVector new_vector = end_point - new_start_point; //new vector from new start point to end point
+
+	float random = rand() % 5000; //Generate random number between 0-5000
+	if (random < rain_amount) //the probability of linetrace to hit snow increases as it snows more. 100% rain_amount is = 2% change to hit snowflake
+	{
+		//generate new hitpoint
+    float r = (float) rand()/RAND_MAX; //random floating number between 0-1
+    FVector new_hitpoint = new_start_point + r * new_vector; //Generate new point from new start point to end point
+		HitInfo.ImpactPoint = new_hitpoint; //assign new hitpoint
+    return true;
+	} else {
+    return false;
+  }
+}
 
 bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float HorizontalAngle, FHitResult& HitResult, FWeatherParameters w) const
 {
@@ -214,6 +246,7 @@ bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float Ho
   );
   const auto Range = Description.Range;
   FVector EndTrace = Range * UKismetMathLibrary::GetForwardVector(ResultRot) + LidarBodyLoc;
+  FVector distance_to_hit = 3000 * UKismetMathLibrary::GetForwardVector(ResultRot) + LidarBodyLoc; //range is = real range * 100 so this is really 30m
 
   GetWorld()->LineTraceSingleByChannel(
     HitInfo,
@@ -224,29 +257,24 @@ bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float Ho
     FCollisionResponseParams::DefaultResponseParam
   );
 
+  float temp = w.Temperature;
+	float rain_amount = w.Precipitation;
   if (HitInfo.bBlockingHit) { 
-	  float temp = w.Temperature;
-	  float rain_amount = w.Precipitation;
-	  if (temp < 0) //If it is snowing
+	  if (temp < 0 && rain_amount > 0) //If it is snowing
 	  {
-		  FVector HitPoint = HitInfo.ImpactPoint;
-		  float random = rand() % 1000; //Generate random number between 0-1000
-		  if (random < rain_amount) //the probability of linetrace to hit snow increases as it snows more
-		  {
-			  //generate new hitpoint
-        FVector start_point = LidarBodyLoc; //start point is lidar position
-        FVector vector = HitPoint - start_point; //vector from start to hitpoint
-        FVector new_start_point = start_point + 0.5 * vector; //make start point away from center of lidar
-        FVector new_vector = HitPoint - new_start_point; //new vector from new start point to hitpoint
-        float r = (float) rand()/RAND_MAX; //random floating number between 0-1
-        FVector target_position = new_start_point + r * new_vector; //Generate new point from new start point to hitpoint
-			  HitPoint = target_position;
-		  }
-		  HitInfo.ImpactPoint = HitPoint; //Either original hitpoint or new one.
+		  CalculateNewHitPoint(HitInfo, rain_amount, EndTrace, LidarBodyLoc, distance_to_hit);
 	  }
-    HitResult = HitInfo;
+    HitResult = HitInfo; //equal to new hitpoint or the old one
     return true;
   } else { //If no hit is acquired
+    if (temp < 0 && rain_amount > 0) //If it is snowing
+	  {
+		  if(CalculateNewHitPoint(HitInfo, rain_amount, EndTrace, LidarBodyLoc, distance_to_hit)) //if new hitpoint is made
+      {
+        HitResult = HitInfo;
+        return true;
+      }
+	  }
     return false;
   }
 }

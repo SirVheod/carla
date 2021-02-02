@@ -126,7 +126,7 @@ def generate_lidar_bp(arg, world, blueprint_library, delta):
             lidar_bp.set_attribute('dropoff_intensity_limit', '1.0')
             lidar_bp.set_attribute('dropoff_zero_intensity', '0.0')
         else:
-            lidar_bp.set_attribute('noise_stddev', '0.2')
+            lidar_bp.set_attribute('noise_stddev', '0.0')
 
     lidar_bp.set_attribute('upper_fov', str(arg.upper_fov))
     lidar_bp.set_attribute('lower_fov', str(arg.lower_fov))
@@ -290,7 +290,7 @@ if __name__ == "__main__":
         help='lidar\'s lower field of view in degrees (default: -25.0)')
     argparser.add_argument(
         '--channels',
-        default=64.0,
+        default=16.0,
         type=float,
         help='lidar\'s channel count (default: 64)')
     argparser.add_argument(
