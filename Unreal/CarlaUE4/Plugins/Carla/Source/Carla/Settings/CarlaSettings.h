@@ -136,6 +136,23 @@ public:
       meta = (ClampMin = "5000.0", ClampMax = "20000.0", UIMin = "5000.0", UIMax = "20000.0"))
   float LowRoadPieceMeshMaxDrawDistance = 15000.0f;
 
+
+  /// Distance at which the light function should be completely faded to
+  /// DisabledBrightness. This is useful for hiding aliasing from light
+  /// functions applied in the distance.
+  UPROPERTY(Category = "Quality Settings/High", BlueprintReadOnly, EditAnywhere, config)
+  float WintersimLightFadeDistance  = 1500.0f;
+
+  /// Default Wintersim distance for all primitive components.
+  UPROPERTY(Category = "Quality Settings/High", BlueprintReadOnly, EditAnywhere, config,
+      meta = (ClampMin = "5000.0", ClampMax = "20000.0", UIMin = "5000.0", UIMax = "20000.0"))
+  float WintersimtaticMeshMaxDrawDistance = 15000.0f;
+
+  /// Default Wintersim distance for roads meshes.
+  UPROPERTY(Category = "Quality Settings/High", BlueprintReadOnly, EditAnywhere, config,
+      meta = (ClampMin = "5000.0", ClampMax = "20000.0", UIMin = "5000.0", UIMax = "20000.0"))
+  float WintersimRoadPieceMeshMaxDrawDistance = 20000.0f;
+
   /// EPIC quality Road Materials. Uses slots name to set material for each part
   /// of the road for Epic quality.
   UPROPERTY(Category = "Quality Settings/Epic",
@@ -144,6 +161,15 @@ public:
       config,
       DisplayName = "Road Materials List for EPIC Quality")
   TArray<FStaticMaterial> EpicRoadMaterials;
+
+  /// High quality Road Materials. Uses slots name to set material for each part
+  /// of the High for Epic quality.
+  UPROPERTY(Category = "Quality Settings/High",
+      BlueprintReadOnly,
+      EditAnywhere,
+      config,
+      DisplayName = "Road Materials List for High Quality")
+  TArray<FStaticMaterial> HighRoadMaterials;
 
   /// @}
 };

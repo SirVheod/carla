@@ -16,7 +16,7 @@ namespace rpc {
   enum class QualityLevel : uint8_t {
     Low,
     // Medium,
-    // High,
+    High,
     Epic,
 
     SIZE,
