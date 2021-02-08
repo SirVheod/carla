@@ -69,6 +69,9 @@ private:
 
   void SetPostProcessEffectsEnabled(UWorld *world, bool enabled) const;
 
+  /// Execute engine commands to apply the low quality level to the world.
+  void LaunchHighQualityCommands(UWorld *world) const;
+
   /// Execute engine commands to apply the epic quality level to the world.
   void LaunchEpicQualityCommands(UWorld *world) const;
 
