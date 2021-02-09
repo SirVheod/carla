@@ -17,8 +17,12 @@
 #include <compiler/disable-ue4-macros.h>
 #include <carla/sensor/data/SemanticLidarData.h>
 #include <compiler/enable-ue4-macros.h>
+#include <list>
+#include <iostream>
+#include <fstream>
 
 #include "RayCastSemanticLidar.generated.h"
+
 
 /// A ray-cast based Lidar sensor.
 UCLASS()
@@ -49,7 +53,7 @@ protected:
   void SimulateLidar(float DeltaTime);
 
   /// Shoot a laser ray-trace, return whether the laser hit something.
-  bool ShootLaser(const float VerticalAngle, float HorizontalAngle, FHitResult &HitResult, FWeatherParameters w) const;
+  bool ShootLaser(const float VerticalAngle, float HorizontalAngle, FHitResult &HitResult, FWeatherParameters w, std::list<float>& distances, bool& isItDone) const;
 
   /// Calculate new hitpoint for linetrace if it is snowing
   bool CalculateNewHitPoint(FHitResult& HitInfo, float rain_amount, FVector end_trace, FVector LidarBodyLoc, FVector distance_to_hit) const;

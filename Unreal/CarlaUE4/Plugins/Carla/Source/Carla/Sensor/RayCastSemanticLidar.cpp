@@ -18,6 +18,10 @@
 #include "Engine/CollisionProfile.h"
 #include "Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 #include "Runtime/Core/Public/Async/ParallelFor.h"
+#include <list>
+#include <iostream>
+#include <fstream>
+using namespace std;
 
 namespace crp = carla::rpc;
 
@@ -106,6 +110,8 @@ void ARayCastSemanticLidar::SimulateLidar(const float DeltaTime)
   auto *Weather = Episode->GetWeather();
   FWeatherParameters w = Weather->GetCurrentWeather(); //current weather
   srand((unsigned)time( NULL )); //seed the random
+  list<float> distances;
+  bool isItDone = false;
 
   GetWorld()->GetPhysicsScene()->GetPxScene()->lockRead();
   ParallelFor(ChannelCount, [&](int32 idxChannel) {
@@ -116,7 +122,7 @@ void ARayCastSemanticLidar::SimulateLidar(const float DeltaTime)
           * idxPtsOneLaser, Description.HorizontalFov) - Description.HorizontalFov / 2;
       const bool PreprocessResult = RayPreprocessCondition[idxChannel][idxPtsOneLaser];
 
-      if (PreprocessResult && ShootLaser(VertAngle, HorizAngle, HitResult, w)) {
+      if (PreprocessResult && ShootLaser(VertAngle, HorizAngle, HitResult, w, distances, isItDone)) {
         WritePointAsync(idxChannel, HitResult);
       }
     };
@@ -126,8 +132,7 @@ void ARayCastSemanticLidar::SimulateLidar(const float DeltaTime)
   FTransform ActorTransf = GetTransform();
   ComputeAndSaveDetections(ActorTransf);
 
-  const float HorizontalAngle = carla::geom::Math::ToRadians(
-      std::fmod(CurrentHorizontalAngle + AngleDistanceOfTick, Description.HorizontalFov));
+  const float HorizontalAngle = carla::geom::Math::ToRadians(std::fmod(CurrentHorizontalAngle + AngleDistanceOfTick, Description.HorizontalFov));
   SemanticLidarData.SetHorizontalAngle(HorizontalAngle);
 }
 
@@ -197,38 +202,56 @@ void ARayCastSemanticLidar::ComputeRawDetection(const FHitResult& HitInfo, const
 
 bool ARayCastSemanticLidar::CalculateNewHitPoint(FHitResult& HitInfo, float rain_amount, FVector end_trace, FVector LidarBodyLoc, FVector distance_to_hit) const
 {
+  FVector max_distance = distance_to_hit; //max_distance = point at 80m
   FVector start_point = LidarBodyLoc; //start point is lidar position
-  //float hit_max = rain_amount/10000; //from 0.01 -> 1.00
-  float multiplier = 1-rain_amount*0.01; //100 = 0 and 0 = 1
-  FVector max_distance = distance_to_hit;
-  if (HitInfo.bBlockingHit) {//If linetrace hits something 
-    float original_distance = HitInfo.Distance; //distance from start to hitpoint
-    float new_distance = FVector::Dist(LidarBodyLoc, distance_to_hit); // distance from start to 30m
-    if (original_distance < new_distance) //if hitpoint is closer than 30m use that instead
-    {
-      max_distance = HitInfo.ImpactPoint;
-    }
-  } 
-  
-  FVector vector = max_distance - start_point; //vector from start to end
-  FVector new_start_point = start_point + 0.02 * vector; //make start point away from center of lidar
-  FVector end_point = max_distance; //- multiplier * vector; //if it rains 100% max distance to hit snowflake is 30m
-  FVector new_vector = end_point - new_start_point; //new vector from new start point to end point
-
-	float random = rand() % 5000; //Generate random number between 0-5000
-	if (random < rain_amount) //the probability of linetrace to hit snow increases as it snows more. 100% rain_amount is = 2% change to hit snowflake
+	if (HitInfo.bBlockingHit) //If linetrace hits something
 	{
-		//generate new hitpoint
-    float r = (float) rand()/RAND_MAX; //random floating number between 0-1
-    FVector new_hitpoint = new_start_point + r * new_vector; //Generate new point from new start point to end point
+		float original_distance = HitInfo.Distance; //distance from start to hitpoint
+		float new_distance = FVector::Dist(start_point, distance_to_hit); // distance from start to 80m
+		if (original_distance < new_distance) //if hitpoint is closer than 80m use that instead
+		{
+			max_distance = HitInfo.ImpactPoint; //max_distance = where we got hit with linetrace
+		}
+	}
+	FVector vector = distance_to_hit - start_point; 
+	FVector new_start_point = start_point + 0.02 * vector; //make start point away from center of lidar
+	FVector new_vector = max_distance - new_start_point; //new vector from new start point to end point
+  float random = (float) rand()/RAND_MAX; //random floating number between 0-1
+  FVector new_hitpoint = new_start_point + random * new_vector; //Generate new point from new start point to end point
+	float distance = FVector::Dist(start_point, new_hitpoint)/100; //distance beteen end point and start point
+	float probability = 0;
+	float distance_to_max = 0;
+	float ratio = 0;
+	if (distance == 20.0)
+	{
+		ratio = 100.0 / rain_amount; //paljoko suhteessa sataa eli jos sataa vaikka 25% = 100/25 =4
+		probability = 52.0 / ratio;
+	}
+	else if(distance < 20.0)
+	{
+		distance_to_max = 20.0 - distance; //distance between new point and 20m
+		ratio = 100.0 / rain_amount; //paljoko suhteessa sataa eli jos sataa vaikka 25% = 100/25 =4
+		probability = (52.0 - (distance_to_max * 2.6)) / ratio; //Tämä sitten todennäköisyys millä piste törmää hiutaleeseen 
+	}
+	else { //eli jos mennään kauemmaksi 20m ->
+		distance_to_max = distance - 20;
+		ratio = 100 / rain_amount; //paljoko suhteessa sataa eli jos sataa vaikka 25% = 100/25 =4
+		probability = (52 - (distance_to_max * 0.8666)) / ratio;
+	}
+
+	float value = probability / 100; //esim 25 % -> 0.25
+	float r = (float)rand() / RAND_MAX;
+	if (r < value)
+	{
 		HitInfo.ImpactPoint = new_hitpoint; //assign new hitpoint
-    return true;
-	} else {
-    return false;
-  }
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
-bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float HorizontalAngle, FHitResult& HitResult, FWeatherParameters w) const
+bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float HorizontalAngle, FHitResult& HitResult, FWeatherParameters w, list<float>& distances, bool& isItDone) const
 {
   FCollisionQueryParams TraceParams = FCollisionQueryParams(FName(TEXT("Laser_Trace")), true, this);
   TraceParams.bTraceComplex = true;
@@ -246,7 +269,7 @@ bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float Ho
   );
   const auto Range = Description.Range;
   FVector EndTrace = Range * UKismetMathLibrary::GetForwardVector(ResultRot) + LidarBodyLoc;
-  FVector distance_to_hit = 3000 * UKismetMathLibrary::GetForwardVector(ResultRot) + LidarBodyLoc; //range is = real range * 100 so this is really 30m
+  FVector distance_to_hit = 8000 * UKismetMathLibrary::GetForwardVector(ResultRot) + LidarBodyLoc; //range is = real range * 100 so this is really 80m
 
   GetWorld()->LineTraceSingleByChannel(
     HitInfo,
@@ -265,6 +288,27 @@ bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float Ho
 		  CalculateNewHitPoint(HitInfo, rain_amount, EndTrace, LidarBodyLoc, distance_to_hit);
 	  }
     HitResult = HitInfo; //equal to new hitpoint or the old one
+    
+    /*FString name = HitInfo.Actor.Get()->GetName();
+    UE_LOG(LogCarla, Warning, TEXT("pyllykakka"));
+    if (name == "seina" && distances.size() < 10000)
+    {
+      UE_LOG(LogCarla, Warning, TEXT("shit is shit"));
+      distances.push_back(HitInfo.Distance);
+    } else if (!isItDone && distances.size() >= 10000)
+    {
+      isItDone = true;
+      ofstream myfile ("data_file.txt");
+      list<float>::iterator itr;
+      UE_LOG(LogCarla, Warning, TEXT("%i"), distances.size());
+      for(itr=distances.begin(); itr != distances.end(); ++itr)
+	    {   
+        UE_LOG(LogCarla, Warning, TEXT("%f"), *itr);
+        myfile << *itr <<"\n";
+      }
+      myfile.close();
+      UE_LOG(LogCarla, Warning, TEXT("shit done"));
+    }    */
     return true;
   } else { //If no hit is acquired
     if (temp < 0 && rain_amount > 0) //If it is snowing
