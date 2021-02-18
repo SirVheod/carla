@@ -59,7 +59,8 @@ namespace rpc {
         float in_fog_falloff,
         float in_wetness,
         float in_snow_amount,
-        float in_temperature)
+        float in_temperature,
+        float in_ice_amount)
       : cloudiness(in_cloudiness),
         precipitation(in_precipitation),
         precipitation_deposits(in_precipitation_deposits),
@@ -71,7 +72,8 @@ namespace rpc {
         fog_falloff(in_fog_falloff),
         wetness(in_wetness), 
         snow_amount(in_snow_amount),
-        temperature(in_temperature) {}
+        temperature(in_temperature),
+        ice_amount(in_ice_amount) {}
 
     float cloudiness = 0.0f;
     float precipitation = 0.0f;
@@ -85,6 +87,7 @@ namespace rpc {
     float wetness = 0.0f;
     float snow_amount = 0.0f;
     float temperature = 0.0f;
+    float ice_amount = 0.0f;
 
 #ifdef LIBCARLA_INCLUDED_FROM_UE4
 
@@ -100,7 +103,8 @@ namespace rpc {
         fog_falloff(Weather.FogFalloff),
         wetness(Weather.Wetness),
         snow_amount(Weather.SnowAmount),
-        temperature(Weather.Temperature) {}
+        temperature(Weather.Temperature),
+        ice_amount(Weather.IceAmount) {}
 
     operator FWeatherParameters() const {
       FWeatherParameters Weather;
@@ -116,6 +120,7 @@ namespace rpc {
       Weather.Wetness = wetness;
       Weather.SnowAmount = snow_amount;
       Weather.Temperature = temperature;
+      Weather.IceAmount = ice_amount;
       return Weather;
     }
 
@@ -134,7 +139,8 @@ namespace rpc {
           fog_falloff != rhs.fog_falloff ||
           wetness != rhs.wetness ||
           snow_amount != rhs.snow_amount ||
-          temperature != rhs.temperature;
+          temperature != rhs.temperature ||
+          ice_amount != rhs.ice_amount;
     }
 
     bool operator==(const WeatherParameters &rhs) const {
@@ -153,7 +159,8 @@ namespace rpc {
         fog_falloff,
         wetness,
         snow_amount,
-        temperature);
+        temperature,
+        ice_amount);
   };
 
 } // namespace rpc

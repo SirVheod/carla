@@ -50,9 +50,7 @@ Use ARROWS or WASD keys for control.
     H/?          : toggle help
     ESC          : quit;
 Welcome to WinterSIm control.
-
-All original control commands also work here.
-Weather conditions can be controlled with sliders.
+class change_frictioners.
 
 Press F1 to change back to the original manual control.
 
@@ -197,6 +195,7 @@ class World(object):
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
         self.hud_wintersim = hud_wintersim
+        self.ud_friction = True
         self.preset = None
         self.player = None
         self.collision_sensor = None
@@ -214,10 +213,9 @@ class World(object):
         self._actor_filter = args.filter
         self._gamma = args.gamma
         self.restart()
-        set_preset = self._weather_presets[0]
-        self.player.get_world().set_weather(set_preset[0]) #set weather so default not used
-        self.world.on_tick(hud_wintersim.on_world_tick)
-        self.recording_enabled = False
+        preset = self._weather_presets[0]
+        self.world.set_weather(preset[0])
+        self.player.gud_frictiong_enabled = False
         self.recording_start = 0
         self.constant_velocity_enabled = False
         self.current_map_layer = 0
@@ -257,7 +255,7 @@ class World(object):
                 print('Please add some Vehicle Spawn Point to your UE4 scene.')
                 sys.exit(1)
             spawn_points = self.map.get_spawn_points()
-            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
+            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()#spawn_points[727]#random.choice(spawn_points) if spawn_points else carla.Transform()
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         # Set up the sensors.
         self.collision_sensor = wintersim_sensors.CollisionSensor(self.player, self.hud_wintersim)
@@ -307,6 +305,37 @@ class World(object):
         self.camera_manager.render(display)
         self.hud_wintersim.render(display, self.world)
 
+    def update_friction(self, iciness):
+        actors = self.world.get_actors()
+        friction = 5
+        friction -= iciness / 100 * 4
+        print("{}".format(friction))
+        for actor in actors:
+            if 'vehicle' in actor.type_id:
+                vehicle = actor
+                front_left_wheel  = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=70.0, radius=20.0)
+                front_right_wheel = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=70.0, radius=20.0)
+                rear_left_wheel   = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=0.0,  radius=20.0)
+                rear_right_wheel  = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=0.0,  radius=20.0)
+
+                wheels = [front_left_wheel, front_right_wheel, rear_left_wheel, rear_right_wheel]
+                physics_control = vehicle.get_physics_control()
+
+                #physics_control.torque_curve = [carla.Vector2D(x=0, y=400), carla.Vector2D(x=1300, y=600)]
+                #physics_control.max_rpm = 10000
+                #physics_control.moi = 1.0
+                #physics_control.damping_rate_full_throttle = 0.0
+                #physics_control.use_gear_autobox = True
+                #physics_control.gear_switch_time = 0.5
+                #physics_control.clutch_strength = 10
+                #physics_control.mass = 10000
+                #physics_control.drag_coefficient = 0.25
+                #physics_control.steering_curve = [carla.Vector2D(x=0, y=1), carla.Vector2D(x=100, y=1), carla.Vector2D(x=300, y=1)]
+                physics_control.wheels = wheels
+                #physics_control.use_sweep_wheel_collision = True
+
+                vehicle.apply_physics_control(physics_control)
+
     def destroy_sensors(self):
         self.camera_manager.sensor.destroy()
         self.camera_manager.sensor = None
@@ -341,7 +370,7 @@ class KeyboardControl(object):
         if isinstance(world.player, carla.Vehicle):
             self._control = carla.VehicleControl()
             self._lights = carla.VehicleLightState.NONE
-            world.player.set_autopilot(self._autopilot_enabled)
+            #world.player.set_autopilot(self._autopilot_enabled)
             world.player.set_light_state(self._lights)
         else:
             raise NotImplementedError("Actor type not supported")
@@ -362,6 +391,8 @@ class KeyboardControl(object):
                             slider.hit = True #slider is being moved
             elif event.type == pygame.MOUSEBUTTONUP: #slider event
                 if world.hud_wintersim.is_hud:
+                    if hud_wintersim.ice_slider.hit: #if road iciness is updated
+                        world.update_friction(hud_wintersim.ice_slider.val)
                     for slider in hud_wintersim.sliders:
                         slider.hit = False #slider moving stopped
             elif event.type == pygame.KEYUP:
@@ -735,9 +766,6 @@ def game_loop(args):
             pygame.display.flip()
 
     finally:
-
-        if (world and world.recording_enabled):
-            client.stop_recorder()
 
         if world is not None:
             world.destroy()

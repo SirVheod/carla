@@ -79,10 +79,11 @@ class HUD_WINTERSIM(object):
         mono = pygame.font.match_font(mono)
         self.is_map = False
         self.snow_amount_slider = Slider #sliders
-        self.time_slider = Slider
+        self.ice_slider = Slider
         self.temp_slider = Slider
         self.rain_slider = Slider
         self.fog_slider = Slider
+        self.wind_slider = Slider
         self.sliders = [] #slider list
         self._font_mono = pygame.font.Font(mono, 12 if os.name == 'nt' else 14)
         self._notifications = FadingText(font, (width, 40), (0, height - 40))
@@ -103,18 +104,20 @@ class HUD_WINTERSIM(object):
 
     def make_sliders(self):
         self.snow_amount_slider = Slider("Snow", 0, 100, 0, 240)
-        self.time_slider = Slider("Time", 13, 24, 1, 370)
+        self.ice_slider = Slider("Road Ice", 0, 100, 0, 370)
         self.temp_slider = Slider("Temp", 0, 40, -40, 500)
         self.rain_slider =Slider("Rain", 0, 100, 0, 630)
         self.fog_slider = Slider("Fog", 0, 100, 0, 760)
-        self.sliders = [self.snow_amount_slider, self.time_slider, self.temp_slider, self.rain_slider, self.fog_slider]
+        self.wind_slider = Slider("Wind", 0, 100, 0, 890)
+        self.sliders = [self.snow_amount_slider, self.ice_slider, self.temp_slider, self.rain_slider, self.fog_slider, self.wind_slider]
 
     def update_sliders(self, preset):
         self.snow_amount_slider.val = preset.snow_amount
-        self.time_slider.val = preset.sun_altitude_angle
+        self.ice_slider.val = preset.ice_amount
         self.temp_slider.val = preset.temperature
         self.rain_slider.val = preset.precipitation
-        self.fog_slider.val = preset.fog_density
+        self.fog_slider.val = preset.precipitation/2
+        self.wind_slider.val = preset.wind_intensity*100.0
 
     def tick(self, world, clock, hud_wintersim):
         self._notifications.tick(world, clock)
@@ -140,10 +143,11 @@ class HUD_WINTERSIM(object):
             'Client:  % 16.0f FPS' % clock.get_fps(),
             '',
             'Amount of Snow:  {}'.format(int(hud_wintersim.snow_amount_slider.val)),
-            'Time:  {}.00'.format(int(hud_wintersim.time_slider.val)),
+            'Iciness:  {}.00%'.format(int(hud_wintersim.ice_slider.val)),
             'Temp:  {}°C'.format(int(hud_wintersim.temp_slider.val)),
             'Rain:  {}%'.format(int(hud_wintersim.rain_slider.val)),
             'Fog:  {}%'.format(int(hud_wintersim.fog_slider.val)),
+            'Wind Intensity {}%'.format(int(hud_wintersim.wind_slider.val)),
             '',
             'Vehicle: % 20s' % wintersim_control_test.get_actor_display_name(world.player, truncate=20),
             'Map:     % 20s' % world.map.name,
@@ -341,40 +345,14 @@ class Weather(object):
         self.weather.cloudiness = hud_wintersim.rain_slider.val
         self.weather.precipitation = hud_wintersim.rain_slider.val
         self.weather.precipitation_deposits = hud_wintersim.rain_slider.val
-        self.weather.wind_intensity = preset.wind_intensity
+        self.weather.wind_intensity = hud_wintersim.wind_slider.val /100.0
         self.weather.fog_density = hud_wintersim.fog_slider.val
         self.weather.wetness = preset.wetness
-        """time_value = float(hud_wintersim.time_slider.val)
-        step_value = 4.5
-        one_step = 0.2875
-        if time_value >= 6.0 or time_value <= 18.0:
-            if time_value > 12.0:
-                difference = time_value - 12.0
-                step_count = difference/one_step
-                sun_alt_value = 90.0 - (step_count*step_value)
-            if time_value < 12.0:
-                difference = 12.0 - time_value
-                step_count = difference/one_step
-                sun_alt_value = 90.0 - (step_count*step_value)
-            if time_value == 12.0:
-                sun_alt_value = 90.0
-        if time_value < 6.0 or time_value > 18.0:
-            if time_value < 6.0:
-                difference = time_value
-                step_count = difference/one_step
-                sun_alt_value = -90.0 + (step_count*step_value)
-            if time_value > 18.0:
-                difference = 24.0 - time_value
-                step_count = difference/one_step
-                sun_alt_value = -90.0 + (step_count*step_value)
-            if time_value == 24.0:
-                sun_alt_value = -90.0
-        self.weather.sun_azimuth_angle = time_value * 15.65
-        self.weather.sun_altitude_angle = sun_alt_value"""
         self.weather.sun_azimuth_angle = preset.sun_azimuth_angle
         self.weather.sun_altitude_angle = preset.sun_altitude_angle
         self.weather.snow_amount = hud_wintersim.snow_amount_slider.val
         self.weather.temperature = hud_wintersim.temp_slider.val
+        self.weather.ice_amount = hud_wintersim.ice_slider.val
     def __str__(self):
         return '%s %s' % (self._sun, self._storm)
 

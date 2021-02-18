@@ -1,0 +1,10 @@
+{
+    "maps": [
+        {
+            "path": "/Game/map_package/Maps/Rantavitikka", 
+            "name": "Rantavitikka", 
+            "use_carla_materials": true
+        }
+    ], 
+    "props": []
+}

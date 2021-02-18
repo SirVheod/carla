@@ -186,7 +186,17 @@ void ARayCastSemanticLidar::ComputeRawDetection(const FHitResult& HitInfo, const
 
     const AActor* actor = HitInfo.Actor.Get();
     Detection.object_idx = 0;
-    Detection.object_tag = static_cast<uint32_t>(HitInfo.Component->CustomDepthStencilValue);
+
+    
+    if (HitInfo.Component == nullptr) 
+    {
+      Detection.object_tag = static_cast<uint32_t>(23);
+    } else {
+      Detection.object_tag = static_cast<uint32_t>(HitInfo.Component->CustomDepthStencilValue);
+    }
+
+    
+    //Detection.object_tag = static_cast<uint32_t>(HitInfo.Component->CustomDepthStencilValue);
 
     if (actor != nullptr) {
 
@@ -196,7 +206,7 @@ void ARayCastSemanticLidar::ComputeRawDetection(const FHitResult& HitInfo, const
 
     }
     else {
-      UE_LOG(LogCarla, Warning, TEXT("Actor not valid %p!!!!"), actor);
+      //UE_LOG(LogCarla, Warning, TEXT("Actor not valid %p!!!!"), actor);
     }
 }
 

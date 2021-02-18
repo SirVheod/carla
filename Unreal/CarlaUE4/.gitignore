@@ -22,6 +22,11 @@ Plugins/Carla/Saved
 /Content/Carla/Static/*
 /Content/Collections
 /Content/Developers
+/Content/map_package
+/Content/koivut
+/Content/parkkis
+/Content/Maps
+/Content/heijastinlevyt
 !/Content/Carla/Static/Particles/
 
 Config/CarlaSettings.ini
