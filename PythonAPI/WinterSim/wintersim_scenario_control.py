@@ -215,30 +215,33 @@ class World(object):
             carla.MapLayer.All
         ]
 
+    restarted = False
+
     def restart(self):
+        if self.restarted:
+            return
+        self.restarted = True
+
         self.player_max_speed = 1.589
         self.player_max_speed_fast = 3.713
+
         # Keep same camera config if the camera manager exists.
         cam_index = self.camera_manager.index if self.camera_manager is not None else 0
         cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
-        # Get a vehicle according to arg parameter.
-        blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
-        # Spawn the player.
-        if self.player is not None:
-            spawn_point = self.player.get_transform()
-            spawn_point.location.z += 2.0
-            spawn_point.rotation.roll = 0.0
-            spawn_point.rotation.pitch = 0.0
-            self.destroy()
-            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+
+        # Get the ego vehicle
         while self.player is None:
-            if not self.map.get_spawn_points():
-                print('There are no spawn points available in your map/town.')
-                print('Please add some Vehicle Spawn Point to your UE4 scene.')
-                sys.exit(1)
-            spawn_points = self.map.get_spawn_points()
-            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()#spawn_points[727]#random.choice(spawn_points) if spawn_points else carla.Transform()
-            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+            print("Waiting for the ego vehicle...")
+            time.sleep(1)
+            possible_vehicles = self.world.get_actors().filter('vehicle.*')
+            for vehicle in possible_vehicles:
+                if vehicle.attributes['role_name'] == "hero":
+                    print("Ego vehicle found")
+                    self.player = vehicle
+                    break
+        
+        self.player_name = self.player.type_id
+
         # Set up the sensors.
         self.collision_sensor = wintersim_sensors.CollisionSensor(self.player, self.hud_wintersim)
         self.lane_invasion_sensor = wintersim_sensors.LaneInvasionSensor(self.player, self.hud_wintersim)
@@ -252,6 +255,16 @@ class World(object):
 
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
+        self._weather_index %= len(self._weather_presets)
+        self.preset = self._weather_presets[self._weather_index]
+        self.hud_wintersim.notification('Weather: %s' % self.preset[1])
+        self.hud_wintersim.update_sliders(self.preset[0])
+        self.player.get_world().set_weather(self.preset[0])
+
+    def specific_weather_preset(self, index):
+        if index > len(self._weather_presets):
+            return
+        self._weather_index = index
         self._weather_index %= len(self._weather_presets)
         self.preset = self._weather_presets[self._weather_index]
         self.hud_wintersim.notification('Weather: %s' % self.preset[1])
@@ -305,6 +318,29 @@ class World(object):
 
                 vehicle.apply_physics_control(physics_control)
 
+    def update_frictionDirectly(self, friction):
+        """Updates all vehicle wheel physics. 
+        Lower value means more slippery road. 2.0 is default.
+        """
+        actors = self.world.get_actors()
+        print("Friction value updated to: {}".format(friction))
+        for actor in actors:
+            if 'vehicle' in actor.type_id:
+
+                # set_simulate_physics must be True for all vehicle actors otherwise UE4/Carla crashes
+                # when we call get_physics_control()
+                actor.set_simulate_physics(enabled=True) 
+                
+                front_left_wheel  = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=70.0, radius=20.0)
+                front_right_wheel = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=70.0, radius=20.0)
+                rear_left_wheel   = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=0.0,  radius=20.0)
+                rear_right_wheel  = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=0.0,  radius=20.0)
+
+                wheels = [front_left_wheel, front_right_wheel, rear_left_wheel, rear_right_wheel]
+                physics_control = actor.get_physics_control()
+                physics_control.wheels = wheels
+                actor.apply_physics_control(physics_control)
+
     def destroy_sensors(self):
         self.camera_manager.sensor.destroy()
         self.camera_manager.sensor = None
@@ -339,7 +375,7 @@ class KeyboardControl(object):
         if isinstance(world.player, carla.Vehicle):
             self._control = carla.VehicleControl()
             self._lights = carla.VehicleLightState.NONE
-            #world.player.set_autopilot(self._autopilot_enabled)
+            world.player.set_autopilot(self._autopilot_enabled)
             world.player.set_light_state(self._lights)
         else:
             raise NotImplementedError("Actor type not supported")
@@ -352,18 +388,18 @@ class KeyboardControl(object):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return True
-            elif event.type == pygame.MOUSEBUTTONDOWN: #slider event
+            elif event.type == pygame.MOUSEBUTTONDOWN:              # slider event
                 if world.hud_wintersim.is_hud:
                     pos = pygame.mouse.get_pos()
                     for slider in hud_wintersim.sliders:
-                        if slider.button_rect.collidepoint(pos): #get slider what mouse is touching
-                            slider.hit = True #slider is being moved
-            elif event.type == pygame.MOUSEBUTTONUP: #slider event
+                        if slider.button_rect.collidepoint(pos):    # get slider what mouse is touching
+                            slider.hit = True                       # slider is being moved
+            elif event.type == pygame.MOUSEBUTTONUP:                # slider event
                 if world.hud_wintersim.is_hud:
-                    if hud_wintersim.ice_slider.hit: #if road iciness is updated
+                    if hud_wintersim.ice_slider.hit:                # if road iciness is updated
                         world.update_friction(hud_wintersim.ice_slider.val)
                     for slider in hud_wintersim.sliders:
-                        slider.hit = False #slider moving stopped
+                        slider.hit = False                          # slider moving stopped
             elif event.type == pygame.KEYUP:
                 if self._is_quit_shortcut(event.key):
                     return True
@@ -371,10 +407,6 @@ class KeyboardControl(object):
                     world.hud_wintersim.toggle_info(world)
                 elif event.key == K_F2:
                     world.hud_wintersim.map.toggle()
-                    #if hud_wintersim.is_map:
-                        #hud_wintersim.is_map = False
-                    #if not hud_wintersim.is_map:
-                        #hud_wintersim.is_map = True
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
                     world.next_map_layer(reverse=True)
                 elif event.key == K_v:
@@ -460,8 +492,7 @@ class KeyboardControl(object):
                     elif event.key == K_p and not pygame.key.get_mods() & KMOD_CTRL:
                         self._autopilot_enabled = not self._autopilot_enabled
                         world.player.set_autopilot(self._autopilot_enabled)
-                        world.hud_wintersim.notification(
-                            'Autopilot %s' % ('On' if self._autopilot_enabled else 'Off'))
+                        world.hud_wintersim.notification('Autopilot %s' % ('On' if self._autopilot_enabled else 'Off'))
                     elif event.key == K_l and pygame.key.get_mods() & KMOD_CTRL:
                         current_lights ^= carla.VehicleLightState.Special1
                     elif event.key == K_l and pygame.key.get_mods() & KMOD_SHIFT:
@@ -620,6 +651,12 @@ class CameraManager(object):
         self.transform_index = (self.transform_index + 1) % len(self._camera_transforms)
         self.set_sensor(self.index, notify=False, force_respawn=True)
 
+    def specific_camera_angle(self, index):
+        if index > len(self._camera_transforms):
+            return
+        self.transform_index = index
+        self.set_sensor(self.index, notify=False, force_respawn=True)
+
     def set_sensor(self, index, notify=True, force_respawn=False):
         index = index % len(self.sensors)
         needs_respawn = True if self.index is None else \
@@ -712,10 +749,10 @@ def game_loop(args):
         hud_wintersim = wintersim_hud.HUD_WINTERSIM(args.width, args.height, display)
         hud_wintersim.make_sliders()
         world = World(client.get_world(), hud_wintersim, args)
-        world.preset = world._weather_presets[0] #start weather preset
-        hud_wintersim.update_sliders(world.preset[0]) #update sliders to positions according to preset
+        world.preset = world._weather_presets[0]                            # start weather preset
+        hud_wintersim.update_sliders(world.preset[0])                       # update sliders to positions according to preset
         controller = KeyboardControl(world, args.autopilot)
-        weather = wintersim_hud.Weather(client.get_world().get_weather()) #weather object to update carla weather with sliders
+        weather = wintersim_hud.Weather(client.get_world().get_weather())   # weather object to update carla weather with sliders
         clock = pygame.time.Clock()
         count = 0
         while True:
@@ -726,10 +763,10 @@ def game_loop(args):
             world.render(display)
             if hud_wintersim.is_hud:
                 for s in hud_wintersim.sliders: 
-                    if s.hit: #if slider is being touched
-                        s.move() #move slider
-                        weather.tick(hud_wintersim, world.preset[0]) #update weather object
-                        client.get_world().set_weather(weather.weather) #send weather
+                    if s.hit:                                               # if slider is being touched
+                        s.move()                                            # move slider
+                        weather.tick(hud_wintersim, world.preset[0])        # update weather object
+                        client.get_world().set_weather(weather.weather)     # send weather
                 for s in hud_wintersim.sliders:
                     s.draw(display, s)
             pygame.display.flip()
