@@ -196,7 +196,7 @@ class World(object):
         self._gamma = args.gamma
         self.restart()
         preset = self._weather_presets[0]
-        self.world.set_weather(preset[0])
+        #self.world.set_weather(preset[0])
         self.player.gud_frictiong_enabled = False
         self.recording_start = 0
         self.constant_velocity_enabled = False
