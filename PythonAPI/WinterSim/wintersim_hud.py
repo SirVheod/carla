@@ -60,7 +60,7 @@ import pygame
 import os
 import math
 import datetime
-from WinterSim import wintersim_control
+import wintersim_control
 import carla
 # ==============================================================================
 # -- HUD_WINTERSIM -------------------------------------------------------------

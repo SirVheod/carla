@@ -92,8 +92,8 @@ import math
 import random
 import re
 import weakref
-from WinterSim import wintersim_hud
-from WinterSim import wintersim_sensors
+import wintersim_hud
+import wintersim_sensors
 
 try:
     import pygame

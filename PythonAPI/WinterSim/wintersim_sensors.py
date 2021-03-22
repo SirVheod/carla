@@ -33,8 +33,8 @@ import math
 import random
 import re
 import weakref
-from WinterSim import wintersim_hud
-from WinterSim import wintersim_control
+import wintersim_hud
+import wintersim_control
 
 # ==============================================================================
 # -- CollisionSensor -----------------------------------------------------------
