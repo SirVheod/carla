@@ -1,35 +1,11 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2019 Aptiv
-#
-# This work is licensed under the terms of the MIT license.
-# For a copy, see <https://opensource.org/licenses/MIT>.
-
-"""
-An example of client-side bounding boxes with basic car controls.
-
-Controls:
-
-	W			 : throttle
-	S			 : brake
-	AD			 : steer
-	Space		 : hand-brake
-
-	ESC			 : quit
-"""
-
-# ==============================================================================
-# -- find carla module ---------------------------------------------------------
-# ==============================================================================
-
-import cv2
-import random
-import weakref
-import carla
 import glob
 import os
 import sys
-from SaveImageUtil import SaveImageUtil as save
+import re
+import threading
+import time
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -39,43 +15,22 @@ try:
 except IndexError:
     pass
 
-# ==============================================================================
-# -- imports -------------------------------------------------------------------
-# ==============================================================================
-import time
-start = time.time()
-
-try:
-    import pygame
-    from pygame.locals import K_ESCAPE
-    from pygame.locals import K_SPACE
-    from pygame.locals import K_a
-    from pygame.locals import K_d
-    from pygame.locals import K_s
-    from pygame.locals import K_w
-    from pygame.locals import K_m
-except ImportError:
-    raise RuntimeError('cannot import pygame, make sure pygame package is installed')
-
-try:
-    import numpy as np
-except ImportError:
-    raise RuntimeError('cannot import numpy, make sure numpy package is installed')
+import pygame
+import os
+import math
+import datetime
+import carla
+import cv2
+import random
+import weakref
 
 VIEW_WIDTH = 1920//4
 VIEW_HEIGHT = 1080//4
 VIEW_FOV = 90
 
+class Wintersim_Windows(object):
 
-# ==============================================================================
-# -- BasicSynchronousClient ----------------------------------------------------
-# ==============================================================================
-
-
-class BasicSynchronousClient(object):
-    """ Basic implementation of a synchronous client."""
-
-    def __init__(self):
+   def __init__(self):
         self.client = None
         self.world = None
         self.car = None
@@ -106,10 +61,22 @@ class BasicSynchronousClient(object):
         self.front_depth = None
 
         self.counter = 0
-        self.counterimages = 0
-        self.recordImages = False
         self.pose = []
         self.log = False
+
+        self.imagecounter = 0
+        self.recordImages = False
+
+        # setup
+        #self.setup_front_rgb_camera()
+        #self.setup_back_rgb_camera()
+        #self.setup_front_depth_camera()
+
+    def on_world_tick(self, timestamp):
+        print("todo")
+
+    def Render_all_windows():
+        print("todo")
 
     def camera_blueprint(self):
         """ Returns camera blueprint."""
@@ -209,42 +176,6 @@ class BasicSynchronousClient(object):
         calibration[0, 0] = calibration[1, 1] = VIEW_WIDTH / (2.0 * np.tan(VIEW_FOV * np.pi / 360.0))
         self.depth_camera.calibration = calibration
 
-    def control(self, car):
-        """ Applies control to main car based on pygame pressed keys.
-        Will return True If ESCAPE is hit, otherwise False to end main loop.
-        """
-
-        keys = pygame.key.get_pressed()
-        if keys[K_ESCAPE]:
-            return True
-
-        control = car.get_control()
-        control.throttle = 0
-
-        if keys[K_w]:
-            control.throttle = 1
-            control.reverse = False
-        elif keys[K_s]:
-            control.throttle = 1
-            control.reverse = True
-        if keys[K_a]:
-            control.steer = max(-1., min(control.steer - 0.05, 0))
-        elif keys[K_d]:
-            control.steer = min(1., max(control.steer + 0.05, 0))
-        else:
-            control.steer = 0
-        control.hand_brake = keys[K_SPACE]
-        if keys[K_m]:
-            if self.log:
-                self.log = False
-                np.savetxt('log/pose.txt', self.pose)
-            else:
-                self.log = True
-            pass
-
-        car.apply_control(control)
-        return False
-
     @staticmethod
     def set_image(weak_self, img):
         """ Sets image coming from camera sensor.
@@ -309,9 +240,9 @@ class BasicSynchronousClient(object):
             cv2.imshow("front RGB camera", i3)
 
             if self.recordImages:
-                self.counterimages += 1
-                file_name = "img" + str(self.counterimages)
-                save.save_image(file_name, i3)
+                self.imagecounter +=1
+                file_name = "img" + str(self.imagecounter)
+                saveUtil.save_image(file_name, i3)
 
     def back_rgb_camera_render(self, rgb_display):
         if self.back_rgb_image is not None:
@@ -338,89 +269,3 @@ class BasicSynchronousClient(object):
             self.pose.append(pos)
             self.counter += 1
         start = time.time()
-
-    def game_loop(self):
-        """Main program loop."""
-
-        try:
-            pygame.init()
-
-            self.client = carla.Client('127.0.0.1', 2000)
-            self.client.set_timeout(2.0)
-            self.world = self.client.get_world()
-
-            self.setup_car()
-            self.setup_camera()
-
-            self.setup_front_rgb_camera()
-            self.setup_back_rgb_camera()
-
-            self.setup_front_depth_camera()
-            # self.setup_back_depth_camera()
-
-            self.display = pygame.display.set_mode((VIEW_WIDTH, VIEW_HEIGHT), pygame.HWSURFACE | pygame.DOUBLEBUF)
-
-            self.front_depth_display = cv2.namedWindow('front_depth_image')
-            self.front_rgb_camera_display = cv2.namedWindow('front RGB camera')
-            self.back_rgb_camera_display = cv2.namedWindow('back RGB camera')
-
-            pygame_clock = pygame.time.Clock()
-
-            self.set_synchronous_mode(True)
-            vehicles = self.world.get_actors().filter('vehicle.*')
-
-            self.recordImages = True
-
-            if self.recordImages:
-                save.initialize()
-
-            while True:
-                self.world.tick()
-                self.capture = True
-                self.front_depth_capture = True
-                self.front_rgb_capture = True
-                self.back_rgb_capture = True
-                pygame_clock.tick_busy_loop(30)
-                self.render(self.display)
-                pygame.display.flip()
-                pygame.event.pump()
-
-                # front sensors
-                self.front_depth_render(self.front_depth_display) 			# render fronnt depth camera to separate window
-                # render front RGB camera to separate window
-                self.front_rgb_camera_render(self.front_rgb_camera_display)
-
-                # back sensors
-                self.back_rgb_camera_render(self.back_rgb_camera_display)  # Render back RGB camera to separate window
-
-                self.log_data()
-                cv2.waitKey(1)
-                if self.control(self.car):
-                    return
-
-        # except Exception as e: print(e)
-        finally:
-            self.set_synchronous_mode(False)
-            self.camera.destroy()
-            self.front_rgb_camera.destroy()
-            self.depth_camera.destroy()
-            self.car.destroy()
-            pygame.quit()
-            cv2.destroyAllWindows()
-
-# ==============================================================================
-# -- main() --------------------------------------------------------------------
-# ==============================================================================
-
-
-def main():
-    """Initializes the client-side bounding box demo."""
-    try:
-        client = BasicSynchronousClient()
-        client.game_loop()
-    finally:
-        print('EXIT')
-
-
-if __name__ == '__main__':
-    main()
