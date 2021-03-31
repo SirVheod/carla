@@ -30,6 +30,7 @@ import glob
 import os
 import sys
 from SaveImageUtil import SaveImageUtil as save
+from wintersim_image_detection import ImageDetection as detectionAPI
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -62,8 +63,8 @@ try:
 except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
 
-VIEW_WIDTH = 1920//4
-VIEW_HEIGHT = 1080//4
+VIEW_WIDTH = 720 #1920//4
+VIEW_HEIGHT = 480 #1080//4
 VIEW_FOV = 90
 
 
@@ -140,7 +141,9 @@ class BasicSynchronousClient(object):
         """Spawns actor-vehicle to be controled. """
 
         car_bp = self.world.get_blueprint_library().filter('model3')[0]
-        location = random.choice(self.world.get_map().get_spawn_points())
+        #location = random.choice(self.world.get_map().get_spawn_points())
+        spawn_transforms = self.world.get_map().get_spawn_points()
+        location = spawn_transforms[85]
         self.car = self.world.spawn_actor(car_bp, location)
 
     def setup_camera(self):
@@ -306,7 +309,10 @@ class BasicSynchronousClient(object):
             i = np.array(self.front_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
-            cv2.imshow("front RGB camera", i3)
+            
+            i4 = detectionAPI.DetectObjects(i3)
+
+            cv2.imshow("front RGB camera", i4)
 
             if self.recordImages:
                 self.counterimages += 1
@@ -356,7 +362,7 @@ class BasicSynchronousClient(object):
             self.setup_back_rgb_camera()
 
             self.setup_front_depth_camera()
-            # self.setup_back_depth_camera()
+            #self.setup_back_depth_camera()
 
             self.display = pygame.display.set_mode((VIEW_WIDTH, VIEW_HEIGHT), pygame.HWSURFACE | pygame.DOUBLEBUF)
 
@@ -369,8 +375,10 @@ class BasicSynchronousClient(object):
             self.set_synchronous_mode(True)
             vehicles = self.world.get_actors().filter('vehicle.*')
 
-            self.recordImages = True
 
+            detectionAPI.Initialize()
+
+            #self.recordImages = True
             if self.recordImages:
                 save.initialize()
 
@@ -385,13 +393,10 @@ class BasicSynchronousClient(object):
                 pygame.display.flip()
                 pygame.event.pump()
 
-                # front sensors
-                self.front_depth_render(self.front_depth_display) 			# render fronnt depth camera to separate window
-                # render front RGB camera to separate window
+                # render sensors to separate window
+                self.front_depth_render(self.front_depth_display)
                 self.front_rgb_camera_render(self.front_rgb_camera_display)
-
-                # back sensors
-                self.back_rgb_camera_render(self.back_rgb_camera_display)  # Render back RGB camera to separate window
+                self.back_rgb_camera_render(self.back_rgb_camera_display)
 
                 self.log_data()
                 cv2.waitKey(1)
@@ -402,8 +407,11 @@ class BasicSynchronousClient(object):
         finally:
             self.set_synchronous_mode(False)
             self.camera.destroy()
+
             self.front_rgb_camera.destroy()
+            self.back_rgb_camera.destroy()
             self.depth_camera.destroy()
+            
             self.car.destroy()
             pygame.quit()
             cv2.destroyAllWindows()
