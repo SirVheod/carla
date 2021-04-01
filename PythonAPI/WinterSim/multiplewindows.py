@@ -104,7 +104,6 @@ class BasicSynchronousClient(object):
         self.front_depth_display = None
         self.front_depth_image = None
         self.front_depth_capture = True
-        self.front_depth = None
 
         self.counter = 0
         self.counterimages = 0
@@ -296,22 +295,20 @@ class BasicSynchronousClient(object):
             surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
             display.blit(surface, (0, 0))
 
-    def front_depth_render(self, front_depth_display):
+    def render_front_depth(self, front_depth_display):
         if self.front_depth_image is not None:
             i = np.array(self.front_depth_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
-            self.front_depth = i3
-            cv2.imshow("front_depth_image", self.front_depth)
+            #i4 = detectionAPI.DetectObjects(i3)
+            cv2.imshow("front_depth_image", i3)
 
-    def front_rgb_camera_render(self, rgb_display):
+    def render_front_rgb_camera(self, rgb_display):
         if self.front_rgb_image is not None:
             i = np.array(self.front_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
-            i3 = i2[:, :, :3]
-            
-            i4 = detectionAPI.DetectObjects(i3)
-
+            #i3 = i2[:, :, :3]
+            i4 = detectionAPI.DetectObjects(i2)
             cv2.imshow("front RGB camera", i4)
 
             if self.recordImages:
@@ -319,12 +316,13 @@ class BasicSynchronousClient(object):
                 file_name = "img" + str(self.counterimages)
                 save.save_image(file_name, i3)
 
-    def back_rgb_camera_render(self, rgb_display):
+    def render_back_rgb_camera(self, rgb_display):
         if self.back_rgb_image is not None:
             i = np.array(self.back_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
-            i3 = i2[:, :, :3]
-            cv2.imshow("back RGB camera", i3)
+            #i3 = i2[:, :, :3]
+            i4 = detectionAPI.DetectObjects(i2)
+            cv2.imshow("back RGB camera", i4)
 
     def log_data(self):
         global start
@@ -375,7 +373,6 @@ class BasicSynchronousClient(object):
             self.set_synchronous_mode(True)
             vehicles = self.world.get_actors().filter('vehicle.*')
 
-
             detectionAPI.Initialize()
 
             #self.recordImages = True
@@ -385,36 +382,38 @@ class BasicSynchronousClient(object):
             while True:
                 self.world.tick()
                 self.capture = True
-                self.front_depth_capture = True
-                self.front_rgb_capture = True
-                self.back_rgb_capture = True
                 pygame_clock.tick_busy_loop(30)
                 self.render(self.display)
                 pygame.display.flip()
                 pygame.event.pump()
 
                 # render sensors to separate window
-                self.front_depth_render(self.front_depth_display)
-                self.front_rgb_camera_render(self.front_rgb_camera_display)
-                self.back_rgb_camera_render(self.back_rgb_camera_display)
+                self.front_depth_capture = True
+                self.front_rgb_capture = True
+                self.back_rgb_capture = True
+                self.render_front_depth(self.front_depth_display)
+                self.render_front_rgb_camera(self.front_rgb_camera_display)
+                self.render_back_rgb_camera(self.back_rgb_camera_display)
 
-                self.log_data()
+                #self.log_data()
                 cv2.waitKey(1)
                 if self.control(self.car):
                     return
 
         # except Exception as e: print(e)
         finally:
-            self.set_synchronous_mode(False)
-            self.camera.destroy()
 
             self.front_rgb_camera.destroy()
-            self.back_rgb_camera.destroy()
             self.depth_camera.destroy()
-            
+            self.back_rgb_camera.destroy()
+
+            self.set_synchronous_mode(False)
+            self.camera.destroy()
+        
             self.car.destroy()
-            pygame.quit()
             cv2.destroyAllWindows()
+            pygame.quit()
+            
 
 # ==============================================================================
 # -- main() --------------------------------------------------------------------
@@ -422,11 +421,11 @@ class BasicSynchronousClient(object):
 
 
 def main():
-    """Initializes the client-side bounding box demo."""
     try:
         client = BasicSynchronousClient()
         client.game_loop()
-    finally:
+
+    except KeyboardInterrupt:
         print('EXIT')
 
 
