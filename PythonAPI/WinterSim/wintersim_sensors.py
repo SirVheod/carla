@@ -174,9 +174,22 @@ class IMUSensor(object):
 # -- RadarSensor ---------------------------------------------------------------
 # ==============================================================================
 
+def emergency_break(parent_actor):
+        v = parent_actor.get_velocity()
+        speed = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
+        while speed >= 5:
+            v = parent_actor.get_velocity()
+            speed = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
+            control = carla.VehicleControl()
+            control.steer = 0.0
+            control.throttle = 0.0
+            control.brake = 1.0
+            control.hand_brake = False
+            parent_actor.apply_control(control)
 
 class RadarSensor(object):
     def __init__(self, parent_actor):
+        self.object_detection = []
         self.sensor = None
         self._parent = parent_actor
         self.velocity_range = 7.5 # m/s
@@ -194,10 +207,10 @@ class RadarSensor(object):
         # We need a weak reference to self to avoid circular reference.
         weak_self = weakref.ref(self)
         self.sensor.listen(
-            lambda radar_data: RadarSensor._Radar_callback(weak_self, radar_data))
+            lambda radar_data: RadarSensor._Radar_callback(weak_self, radar_data, parent_actor))
 
     @staticmethod
-    def _Radar_callback(weak_self, radar_data):
+    def _Radar_callback(weak_self, radar_data, parent_actor):
         self = weak_self()
         if not self:
             return
@@ -209,6 +222,20 @@ class RadarSensor(object):
         for detect in radar_data:
             azi = math.degrees(detect.azimuth)
             alt = math.degrees(detect.altitude)
+            obj_azi = detect.azimuth
+            obj_alt = detect.altitude
+            obj_distance = detect.depth
+            obj_velocity = detect.velocity
+
+            if(obj_azi < 0):
+                obj_azi = obj_azi * -1
+
+            obj_offside = math.sin(obj_azi)*obj_distance
+            obj_height = math.sin(obj_alt)*obj_distance
+            v = parent_actor.get_velocity()
+            car_speed = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
+            if 0 < obj_height < 1.5 and obj_offside < 2 and car_speed > 30 and obj_velocity < 0 and obj_distance < 10:
+                emergency_break(parent_actor)
             # The 0.25 adjusts a bit the distance so the dots can
             # be properly seen
             fw_vec = carla.Vector3D(x=detect.depth - 0.25)
