@@ -8,7 +8,7 @@ class ImageDetection():
     def Initialize():
         '''Initilize image detection class. Load .xml dataset.'''
         global dataset
-        dataset = cv2.CascadeClassifier('stop_data.xml')
+        dataset = cv2.CascadeClassifier('stop_data.xml') #cascade.xml
 
         if dataset is None:
             print("dataset is null!")

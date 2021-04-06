@@ -46,6 +46,9 @@ Use ARROWS or WASD keys for control.
     CTRL + +     : increments the start time of the replay by 1 second (+SHIFT = 10 seconds)
     CTRL + -     : decrements the start time of the replay by 1 second (+SHIFT = 10 seconds)
 
+
+    F8           : spawn windows
+
     F1           : toggle HUD
     H/?          : toggle help
     ESC          : quit;
@@ -94,6 +97,7 @@ import re
 import weakref
 from WinterSim import wintersim_hud
 from WinterSim import wintersim_sensors
+from wintersim_multiplewindows import MultipleWindows
 
 try:
     import pygame
@@ -108,6 +112,7 @@ try:
     from pygame.locals import K_ESCAPE
     from pygame.locals import K_F1
     from pygame.locals import K_F2
+    from pygame.locals import K_F8
     from pygame.locals import K_LEFT
     from pygame.locals import K_PERIOD
     from pygame.locals import K_RIGHT
@@ -176,6 +181,7 @@ class World(object):
             print('  The server could not send the OpenDRIVE (.xodr) file:')
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
+        self.windows = args.windows
         self.hud_wintersim = hud_wintersim
         self.ud_friction = True
         self.preset = None
@@ -189,7 +195,7 @@ class World(object):
         self._weather_presets = []
         self._weather_presets_all = find_weather_presets()
         for preset in self._weather_presets_all:
-            if preset[0].temperature <= 0: #get only presets what are for wintersim
+            if preset[0].temperature <= 0: # get only presets what are for wintersim
                 self._weather_presets.append(preset)
         self._weather_index = 0
         self._actor_filter = args.filter
@@ -249,6 +255,7 @@ class World(object):
         self.camera_manager.set_sensor(cam_index, notify=False)
         actor_type = get_actor_display_name(self.player)
         self.hud_wintersim.notification(actor_type)
+        self.multiple_window_setup = False
 
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
@@ -287,6 +294,15 @@ class World(object):
         self.camera_manager.render(display)
         self.hud_wintersim.render(display, self.world)
 
+        if self.multiple_window_setup == False and self.windows:
+            self.window = MultipleWindows(self.player, self.camera_manager.sensor, self.world)
+            self.multiple_window_setup = True
+
+        if self.windows:
+            self.window.render_all_windows()
+            #imgs = self.window.render_views()
+            #self.hud_wintersim.render_views(display, self.world, imgs)
+
     def update_friction(self, iciness):
         actors = self.world.get_actors()
         friction = 5
@@ -311,6 +327,9 @@ class World(object):
         self.camera_manager.index = None
 
     def destroy(self):
+        if self.window is not None:
+            self.window.destroy()
+
         if self.radar_sensor is not None:
             self.toggle_radar()
         sensors = [
@@ -326,6 +345,7 @@ class World(object):
         if self.player is not None:
             self.player.destroy()
 
+        
 
 # ==============================================================================
 # -- KeyboardControl -----------------------------------------------------------
@@ -375,6 +395,13 @@ class KeyboardControl(object):
                         #hud_wintersim.is_map = False
                     #if not hud_wintersim.is_map:
                         #hud_wintersim.is_map = True
+                elif event.key == K_F8:
+                    print("toggling windows")
+                    world.windows = not world.windows
+                    if world.windows == False and world.window is not None:
+                        world.window.destroy()
+                        world.multiple_window_setup = False
+
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
                     world.next_map_layer(reverse=True)
                 elif event.key == K_v:
@@ -712,12 +739,14 @@ def game_loop(args):
         hud_wintersim = wintersim_hud.HUD_WINTERSIM(args.width, args.height, display)
         hud_wintersim.make_sliders()
         world = World(client.get_world(), hud_wintersim, args)
-        world.preset = world._weather_presets[0] #start weather preset
-        hud_wintersim.update_sliders(world.preset[0]) #update sliders to positions according to preset
+        world.preset = world._weather_presets[0]                            # start weather preset
+        hud_wintersim.update_sliders(world.preset[0])                       # update sliders to positions according to preset
         controller = KeyboardControl(world, args.autopilot)
-        weather = wintersim_hud.Weather(client.get_world().get_weather()) #weather object to update carla weather with sliders
+        weather = wintersim_hud.Weather(client.get_world().get_weather())   # weather object to update carla weather with sliders
         clock = pygame.time.Clock()
         count = 0
+        #penguinImage = pygame.image.load("muonio_map.png").convert()
+
         while True:
             clock.tick_busy_loop(60)
             if controller.parse_events(client, world, clock, hud_wintersim):
@@ -726,16 +755,20 @@ def game_loop(args):
             world.render(display)
             if hud_wintersim.is_hud:
                 for s in hud_wintersim.sliders: 
-                    if s.hit: #if slider is being touched
-                        s.move() #move slider
-                        weather.tick(hud_wintersim, world.preset[0]) #update weather object
-                        client.get_world().set_weather(weather.weather) #send weather
+                    if s.hit:                                               # if slider is being touched
+                        s.move()                                            # move slider
+                        weather.tick(hud_wintersim, world.preset[0])        # update weather object
+                        client.get_world().set_weather(weather.weather)     # send weather
                 for s in hud_wintersim.sliders:
                     s.draw(display, s)
+
+             
+            # x = 20; # x coordnate of image
+            # y = 30; # y coordinate of image
+            # display.blit(penguinImage, (x,y)) # paint to screen
             pygame.display.flip()
 
     finally:
-
         if world is not None:
             world.destroy()
 
@@ -789,6 +822,11 @@ def main():
         default=2.2,
         type=float,
         help='Gamma correction of the camera (default: 2.2)')
+    argparser.add_argument(
+        '--windows',
+        default=False,
+        type=bool,
+        help='multiplewindows')
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]
@@ -801,7 +839,6 @@ def main():
     print(__doc__)
 
     try:
-
         game_loop(args)
 
     except KeyboardInterrupt:
@@ -809,5 +846,4 @@ def main():
 
 
 if __name__ == '__main__':
-
     main()

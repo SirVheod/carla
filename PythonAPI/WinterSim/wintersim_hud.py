@@ -47,6 +47,7 @@ import sys
 import re
 import threading
 import time
+import numpy as np
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -95,6 +96,11 @@ class HUD_WINTERSIM(object):
         self.is_hud = True
         self._info_text = []
         self._server_clock = pygame.time.Clock()
+
+        self.map_image = pygame.image.load('muonio_map.png')
+        self.logo = pygame.image.load('WinterSim_White_Color.png')
+        self.logo = pygame.transform.scale(self.logo, (262,61))
+        self.logo_rect = self.logo.get_rect()
 
     def on_world_tick(self, timestamp):
         self._server_clock.tick()
@@ -207,18 +213,15 @@ class HUD_WINTERSIM(object):
     def render(self, display, world):
         if self.is_hud:
             if self.is_map:
-                map_image = pygame.image.load('muonio_map.png')
-                map_rect = map_image.get_rect ()
+                map_rect = self.map_image.get_rect()
                 map_rect.center = (960,540)
-                map_image.set_alpha(200)
+                self.map_image.set_alpha(200)
                 rect = display.get_rect()
-                display.blit(map_image, map_rect) 
-            logo = pygame.image.load('WinterSim_White_Color.png')
-            logo = pygame.transform.scale(logo, (262,61))
-            logo_rect = logo.get_rect()
+                display.blit(self.map_image, map_rect)
+
             display_rect = display.get_rect()
-            logo_rect.topright = tuple(map(lambda i, j: i - j, display_rect.topright, (5,-5))) 
-            display.blit(logo, logo_rect)
+            self.logo_rect.topright = tuple(map(lambda i, j: i - j, display_rect.topright, (5,-5))) 
+            display.blit(self.logo, self.logo_rect)
             info_surface = pygame.Surface((220, self.dim[1]))
             info_surface.set_alpha(200)
             display.blit(info_surface, (0, 0))
@@ -255,6 +258,25 @@ class HUD_WINTERSIM(object):
         self._notifications.render(display)
         self.help_text.render(display)
         self.map.render(display)
+
+    def render_views(self, display, world, imgs):
+        xx = 20
+        yy = 30
+        #for view in imgs:
+            # x = np.arange(0, 300)
+            # y = np.arange(0, 300)
+            # X, Y = np.meshgrid(x, y)
+            # Z = X + Y
+            # Z = 255*Z/Z.max()
+            # surf = pygame.surfarray.make_surface(Z)
+            # display.blit(surf,(xx,yy))
+
+            #imgdata = pygame.surfarray.array3d(view)
+            #display.blit(imgdata,(xx,yy))
+            #pygame_img = pygame.image.frombuffer(view.tostring(), view.shape[1::-1], "RGB")
+            #display.blit(pygame_img, (pos_x, pos_y))
+            #xx = xx + 5
+            #yy = yy + 5
 
 
 # ==============================================================================
@@ -419,27 +441,6 @@ class HelpText(object):
 # ==============================================================================
 # -- Map ------------------------------------------------------------------
 # ==============================================================================
-
-
-'''class Map(object):
-    def __init__(self, font,width, height, hud):
-        self.dim = (1080, 1920)
-        self.surface = pygame.Surface(self.dim)
-        self.surface.fill((0, 0, 0, 0))
-        self.surface.set_alpha(200)
-        self.map_image = pygame.image.load('muonio_map.png')
-        self.map_rect = self.map_image.get_rect ()
-        self.map_rect.center = (540,960)
-        #self.map_image.set_alpha(200)
-        self.surface.blit(self.map_image, self.map_rect)
-        self.visible = False 
-
-    def toggle(self):
-        self.visible = not self.visible
-
-    def render(self, display):
-        if self.visible:
-            display.blit(self.surface, self.dim)'''
 
 class Map(object):
     """Helper class to handle text output using pygame"""
