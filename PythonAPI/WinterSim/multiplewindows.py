@@ -30,7 +30,7 @@ import glob
 import os
 import sys
 from SaveImageUtil import SaveImageUtil as save
-from wintersim_image_detection import ImageDetection as detectionAPI
+from wintersim_yolo_detection import ImageDetection as detectionAPI
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -307,8 +307,8 @@ class BasicSynchronousClient(object):
         if self.front_rgb_image is not None:
             i = np.array(self.front_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
-            #i3 = i2[:, :, :3]
-            i4 = detectionAPI.DetectObjects(i2)
+            i3 = i2[:, :, :3]
+            i4 = detectionAPI.DetectObjects(i2, i3)
             cv2.imshow("front RGB camera", i4)
 
             if self.recordImages:
@@ -320,9 +320,9 @@ class BasicSynchronousClient(object):
         if self.back_rgb_image is not None:
             i = np.array(self.back_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
-            #i3 = i2[:, :, :3]
-            i4 = detectionAPI.DetectObjects(i2)
-            cv2.imshow("back RGB camera", i4)
+            i3 = i2[:, :, :3]
+            #i4 = detectionAPI.DetectObjects(i2)
+            cv2.imshow("back RGB camera", i3)
 
     def log_data(self):
         global start

@@ -300,8 +300,6 @@ class World(object):
 
         if self.windows:
             self.window.render_all_windows()
-            #imgs = self.window.render_views()
-            #self.hud_wintersim.render_views(display, self.world, imgs)
 
     def update_friction(self, iciness):
         actors = self.world.get_actors()

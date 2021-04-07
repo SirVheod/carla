@@ -7,7 +7,7 @@ import os
 import sys
 import time
 from SaveImageUtil import SaveImageUtil as save
-from wintersim_image_detection import ImageDetection as detectionAPI
+from wintersim_yolo_detection import ImageDetection as detectionAPI
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -22,9 +22,9 @@ try:
 except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
 
-VIEW_WIDTH = 720 #1920//4
-VIEW_HEIGHT = 480 #1080//4
-VIEW_FOV = 90
+VIEW_WIDTH = 608
+VIEW_HEIGHT = 384
+VIEW_FOV = 70
 
 class MultipleWindows():
     """ Wintersim multiplewindows class."""
@@ -114,8 +114,8 @@ class MultipleWindows():
         if self.front_rgb_image is not None:
             i = np.array(self.front_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
-            #i4 = i2[:, :, :3]
-            i4 = detectionAPI.DetectObjects(i2)
+            i3 = i2[:, :, :3]
+            i4 = detectionAPI.DetectObjects(i2, i3)
             cv2.imshow("front RGB camera", i4)
 
             if self.recordImages:
@@ -127,9 +127,9 @@ class MultipleWindows():
         if self.back_rgb_image is not None:
             i = np.array(self.back_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
-            #i3 = i2[:, :, :3]
-            i4 = detectionAPI.DetectObjects(i2)
-            cv2.imshow("back RGB camera", i4)
+            i3 = i2[:, :, :3]
+            #i4 = detectionAPI.DetectObjects(i2, i3)
+            cv2.imshow("back RGB camera", i3)
 
     def render_all_windows(self):
         """ Render all separate sensors (cv2 windows)"""
