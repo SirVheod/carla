@@ -181,7 +181,7 @@ class World(object):
             print('  The server could not send the OpenDRIVE (.xodr) file:')
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
-        self.windows = args.windows
+        self.multiple_windows_enabled = args.windows
         self.hud_wintersim = hud_wintersim
         self.ud_friction = True
         self.preset = None
@@ -291,15 +291,31 @@ class World(object):
         self.hud_wintersim.tick(self, clock, hud_wintersim)
 
     def render(self, display):
+
+        if self.multiple_windows_enabled and self.multiple_window_setup:
+            # if multiplewindows enabled and setup done, enable MultipleWindows thread flag
+            self.cv2_windows.resume()
+            
         self.camera_manager.render(display)
         self.hud_wintersim.render(display, self.world)
-
-        if self.multiple_window_setup == False and self.windows:
-            self.window = MultipleWindows(self.player, self.camera_manager.sensor, self.world)
+       
+        if self.multiple_window_setup == False and self.multiple_windows_enabled:
+            self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world)
             self.multiple_window_setup = True
+            self.cv2_windows.start()
+            self.cv2_windows.pause()
+        
+        if self.multiple_windows_enabled:
+            # if multiplewindows enabled, disable MultipleWindows thread flag
+            self.cv2_windows.pause()
 
-        if self.windows:
-            self.window.render_all_windows()
+        #self.camera_manager.render(display)
+        #self.hud_wintersim.render(display, self.world)
+        # if self.multiple_window_setup == False and self.multiple_windows_enabled:
+        #     self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world)
+        #     self.multiple_window_setup = True
+        # if self.multiple_windows_enabled:
+        #     self.cv2_windows.render_all_windows()
 
     def update_friction(self, iciness):
         actors = self.world.get_actors()
@@ -325,8 +341,8 @@ class World(object):
         self.camera_manager.index = None
 
     def destroy(self):
-        if self.window is not None:
-            self.window.destroy()
+        if self.cv2_windows is not None:
+            self.cv2_windows.destroy()
 
         if self.radar_sensor is not None:
             self.toggle_radar()
@@ -394,10 +410,9 @@ class KeyboardControl(object):
                     #if not hud_wintersim.is_map:
                         #hud_wintersim.is_map = True
                 elif event.key == K_F8:
-                    print("toggling windows")
-                    world.windows = not world.windows
-                    if world.windows == False and world.window is not None:
-                        world.window.destroy()
+                    world.multiple_windows_enabled = not world.multiple_windows_enabled
+                    if world.multiple_windows_enabled == False and world.cv2_windows is not None:
+                        world.cv2_windows.destroy()
                         world.multiple_window_setup = False
 
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:

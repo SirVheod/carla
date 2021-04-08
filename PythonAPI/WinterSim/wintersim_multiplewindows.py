@@ -7,7 +7,13 @@ import os
 import sys
 import time
 from SaveImageUtil import SaveImageUtil as save
-from wintersim_yolo_gpu_detection import ImageDetection as detectionAPI
+import threading
+
+try:
+    from wintersim_yolo_gpu_detection import ImageDetection as detectionAPI
+except ImportError:
+    print("couldn't load wintersim_yolo_gpu_detection")
+    pass
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -26,8 +32,8 @@ VIEW_WIDTH = 608
 VIEW_HEIGHT = 384
 VIEW_FOV = 70
 
-class MultipleWindows():
-    """ Wintersim multiplewindows class."""
+class MultipleWindows(threading.Thread):
+    """ Wintersim threaded multiplewindows class. """
 
     def camera_blueprint(self):
         """ Returns camera blueprint."""
@@ -107,8 +113,8 @@ class MultipleWindows():
             i = np.array(self.front_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
-            i4 = detectionAPI.DetectObjects(i2, i3)
-            cv2.imshow("front RGB camera", i4)
+            #i4 = detectionAPI.DetectObjects(i2, i3)
+            cv2.imshow("front RGB camera", i3)
 
             if self.recordImages:
                 self.counterimages += 1
@@ -130,7 +136,7 @@ class MultipleWindows():
         self.render_back_rgb_camera(self.back_rgb_camera_display)
 
     def render_views(self):
-
+        #todo
         imgs = []
 
         if self.front_rgb_image is not None:
@@ -157,12 +163,19 @@ class MultipleWindows():
 
     def destroy(self):
         """Destroy spawned sensors and close all cv2 windows"""
+        self.stop()
         self.front_rgb_camera.destroy()
         self.back_rgb_camera.destroy()
         self.depth_camera.destroy()
         cv2.destroyAllWindows()
 
     def __init__(self, car, camera, world):
+        super(MultipleWindows, self).__init__()
+        self.__flag = threading.Event()             # The flag used to pause the thread
+        self.__flag.set()                           # Set to True
+        self.__running = threading.Event()          # Used to stop the thread identification
+        self.__running.set()                        # Set running to True
+        
         self.camera = camera
         self.world = world
         self.car = car
@@ -188,8 +201,23 @@ class MultipleWindows():
         self.front_depth_display = None
         self.front_depth_image = None
 
-        detectionAPI.Initialize()
+        #detectionAPI.Initialize()
 
         self.setup_back_rgb_camera()
         self.setup_front_rgb_camera()
         self.setup_front_depth_camera()
+
+    def run(self):
+        while self.__running.isSet():
+            self.__flag.wait()                      # return immediately when it is True, block until the internal flag is True when it is False
+            self.render_all_windows()               # render all cv2 windows when flag is True
+
+    def pause(self):
+        self.__flag.clear()                         # Set to False to block the thread
+
+    def resume(self):
+        self.__flag.set()                           # Set to True, let the thread stop blocking
+
+    def stop(self):
+        self.__flag.set()                           # Resume the thread from the suspended state, if it is already suspended
+        self.__running.clear()                      # Set to False
