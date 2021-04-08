@@ -7,7 +7,7 @@ import os
 import sys
 import time
 from SaveImageUtil import SaveImageUtil as save
-from wintersim_yolo_detection import ImageDetection as detectionAPI
+from wintersim_yolo_gpu_detection import ImageDetection as detectionAPI
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -31,7 +31,6 @@ class MultipleWindows():
 
     def camera_blueprint(self):
         """ Returns camera blueprint."""
-
         camera_bp = self.world.get_blueprint_library().find('sensor.camera.rgb')
         camera_bp.set_attribute('image_size_x', str(VIEW_WIDTH))
         camera_bp.set_attribute('image_size_y', str(VIEW_HEIGHT))
@@ -40,7 +39,6 @@ class MultipleWindows():
 
     def depth_camera_blueprint(self):
         """Returns camera blueprint. """
-
         depth_camera_bp = self.world.get_blueprint_library().find('sensor.camera.depth')
         depth_camera_bp.set_attribute('image_size_x', str(VIEW_WIDTH))
         depth_camera_bp.set_attribute('image_size_y', str(VIEW_HEIGHT))
@@ -50,8 +48,7 @@ class MultipleWindows():
     def setup_front_rgb_camera(self):
         """ Spawns actor-camera to be used to RGB camera view.
         Sets calibration for client-side boxes rendering. """
-
-        camera_transform = carla.Transform(carla.Location(x=2.0, z=1.0), carla.Rotation(pitch=0))
+        camera_transform = carla.Transform(carla.Location(x=2.0, z=2.0), carla.Rotation(pitch=0))
         self.front_rgb_camera = self.world.spawn_actor(self.camera_blueprint(), camera_transform, attach_to=self.car)
         weak_rgb_self = weakref.ref(self)
         self.front_rgb_camera.listen(lambda front_rgb_image: weak_rgb_self(
@@ -61,7 +58,6 @@ class MultipleWindows():
     def setup_back_rgb_camera(self):
         """ Spawns actor-camera to be used to RGB camera view.
         Sets calibration for client-side boxes rendering. """
-
         camera_transform = carla.Transform(carla.Location(x=-3.5, z=1.5), carla.Rotation(pitch=-10, yaw=180))
         self.back_rgb_camera = self.world.spawn_actor(self.camera_blueprint(), camera_transform, attach_to=self.car)
         weak_back_rgb_self = weakref.ref(self)
@@ -72,7 +68,6 @@ class MultipleWindows():
     def setup_front_depth_camera(self):
         """ Spawns actor-camera to be used to render view.
         Sets calibration for client-side boxes rendering. """
-
         depth_camera_transform = carla.Transform(carla.Location(x=0, z=2.8), carla.Rotation(pitch=0))
         self.depth_camera = self.world.spawn_actor(
             self.depth_camera_blueprint(), depth_camera_transform, attach_to=self.car)
@@ -84,21 +79,18 @@ class MultipleWindows():
     @staticmethod
     def set_front_rgb_image(weak_self, img):
         """ Sets image coming from camera sensor. """
-
         self = weak_self()
         self.front_rgb_image = img
 
     @staticmethod
     def set_back_rgb_image(weak_self, img):
         """ Sets image coming from camera sensor. """
-
         self = weak_self()
         self.back_rgb_image = img
 
     @staticmethod
     def set_front_depth_image(weak_depth_self, depth_img):
         """ Sets image coming from camera sensor. """
-        
         self = weak_depth_self()
         self.front_depth_image = depth_img
 
@@ -164,10 +156,10 @@ class MultipleWindows():
         return imgs
 
     def destroy(self):
-        """ Destroy spawned sensors and close all cv2 windows"""
+        """Destroy spawned sensors and close all cv2 windows"""
         self.front_rgb_camera.destroy()
-        self.depth_camera.destroy()
         self.back_rgb_camera.destroy()
+        self.depth_camera.destroy()
         cv2.destroyAllWindows()
 
     def __init__(self, car, camera, world):
@@ -198,6 +190,6 @@ class MultipleWindows():
 
         detectionAPI.Initialize()
 
-        self.setup_front_rgb_camera()
         self.setup_back_rgb_camera()
+        self.setup_front_rgb_camera()
         self.setup_front_depth_camera()

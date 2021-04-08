@@ -743,8 +743,6 @@ def game_loop(args):
         weather = wintersim_hud.Weather(client.get_world().get_weather())   # weather object to update carla weather with sliders
         clock = pygame.time.Clock()
         count = 0
-        #penguinImage = pygame.image.load("muonio_map.png").convert()
-
         while True:
             clock.tick_busy_loop(60)
             if controller.parse_events(client, world, clock, hud_wintersim):
@@ -760,10 +758,6 @@ def game_loop(args):
                 for s in hud_wintersim.sliders:
                     s.draw(display, s)
 
-             
-            # x = 20; # x coordnate of image
-            # y = 30; # y coordinate of image
-            # display.blit(penguinImage, (x,y)) # paint to screen
             pygame.display.flip()
 
     finally:
