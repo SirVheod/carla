@@ -7,6 +7,7 @@ import os
 import sys
 import time
 from SaveImageUtil import SaveImageUtil as save
+#from SaveVideoUtil import SaveVideoUtil as saveVideo
 import threading
 
 try:
@@ -116,10 +117,12 @@ class MultipleWindows(threading.Thread):
             i4 = detectionAPI.DetectObjects(i2, i3)
             cv2.imshow("front RGB camera", i4)
 
+            #saveVideo.save_frame(i4)
+
             if self.recordImages:
                 self.counterimages += 1
                 file_name = "img" + str(self.counterimages)
-                save.save_image(file_name, i3)
+                save.save_single_image(file_name, i3)
 
     def render_back_rgb_camera(self, rgb_display):
         if self.back_rgb_image is not None:
@@ -131,9 +134,15 @@ class MultipleWindows(threading.Thread):
 
     def render_all_windows(self):
         """ Render all separate sensors (cv2 windows)"""
+        start_time = time.time()
+        
         self.render_front_rgb_camera(self.front_rgb_camera_display)
         self.render_front_depth(self.front_depth_display)
         self.render_back_rgb_camera(self.back_rgb_camera_display)
+
+        toc = time.perf_counter()
+        fps = int(1.0 / (time.time() - start_time))
+        print("Object detection FPS: ", fps)
 
     def render_views(self):
         #todo
@@ -163,6 +172,9 @@ class MultipleWindows(threading.Thread):
 
     def destroy(self):
         """Destroy spawned sensors and close all cv2 windows"""
+        #saveVideo.make_video()
+        if self.recordImages:
+            save.save_images_to_video()
         self.stop()
         self.front_rgb_camera.destroy()
         self.back_rgb_camera.destroy()
@@ -198,6 +210,9 @@ class MultipleWindows(threading.Thread):
         self.front_depth_display = None
         self.front_depth_image = None
 
+
+        save.initialize()
+        #saveVideo.initialize()
         detectionAPI.Initialize()
 
         self.setup_back_rgb_camera()

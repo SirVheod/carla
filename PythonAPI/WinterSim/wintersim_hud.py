@@ -147,6 +147,7 @@ class HUD_WINTERSIM(object):
             '',
             'Server:  % 16.0f FPS' % self.server_fps,
             'Client:  % 16.0f FPS' % clock.get_fps(),
+            #'Objdet:  % 16.0f FPS' % clock.get_fps(),
             '',
             'Amount of Snow:  {}'.format(int(hud_wintersim.snow_amount_slider.val)),
             'Iciness:  {}.00%'.format(int(hud_wintersim.ice_slider.val)),

@@ -208,6 +208,7 @@ class World(object):
         self.recording_start = 0
         self.constant_velocity_enabled = False
         self.current_map_layer = 0
+        self.world.on_tick(self.hud_wintersim.on_world_tick)
         self.map_layer_names = [
             carla.MapLayer.NONE,
             carla.MapLayer.Buildings,
@@ -768,7 +769,7 @@ def game_loop(args):
                 for s in hud_wintersim.sliders:
                     s.draw(display, s)
 
-            world.block_object_detection()                                  # block object detection till next frame (pauses thread)
+            world.block_object_detection()                                  # block object detection till next frame (pauses)
             pygame.display.flip()
 
     finally:

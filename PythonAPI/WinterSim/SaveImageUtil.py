@@ -1,7 +1,8 @@
 # WinterSim save image utility
-import os
+import glob
 import cv2
 import sys
+import os
 
 class SaveImageUtil():
 
@@ -19,13 +20,33 @@ class SaveImageUtil():
         print(path)
 
     @staticmethod
-    def save_image(filename, img):
+    def save_single_image(filename, img):
         '''Save image to disk.'''
         cv2.imwrite(os.path.join(path , filename + '.png'), img)
 
-    @staticmethod
-    def set_custom_path(custom_path):
-        '''set custom path.'''
-        if os.path.isdir(custom_path):
-            global path
-            path = custom_path
+    
+    def clear_images():
+        test = os.listdir(path)
+        for images in test:
+            if images.endswith(".jpg"):
+                os.remove(os.path.join(path, images))
+
+    def save_images_to_video():
+        image_folder = path
+        video_name = 'mygeneratedvideo.avi'
+        
+        images = [img for img in os.listdir(image_folder)
+                if img.endswith(".jpg") or img.endswith(".jpeg") or img.endswith("png")]
+
+        frame = cv2.imread(os.path.join(image_folder, images[0]))
+        height, width, layers = frame.shape
+
+        video = cv2.VideoWriter(video_name,cv2.VideoWriter_fourcc(*'DIVX'), 15, (width, height))
+        #video = cv2.VideoWriter(video_name, 0, 5, (width, height))
+    
+        # Appending the images to the video one by one
+        for image in images: 
+            video.write(cv2.imread(os.path.join(image_folder, image))) 
+        
+        # Deallocating memories taken for window creation
+        video.release()  # releasing the video generated
