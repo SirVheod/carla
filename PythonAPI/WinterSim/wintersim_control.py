@@ -182,6 +182,7 @@ class World(object):
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
         self.multiple_windows_enabled = args.windows
+        self.cv2_windows = None
         self.hud_wintersim = hud_wintersim
         self.ud_friction = True
         self.preset = None
@@ -290,32 +291,26 @@ class World(object):
     def tick(self, clock, hud_wintersim):
         self.hud_wintersim.tick(self, clock, hud_wintersim)
 
-    def render(self, display):
 
+    def render_object_detection(self):
         if self.multiple_windows_enabled and self.multiple_window_setup:
             # if multiplewindows enabled and setup done, enable MultipleWindows thread flag
             self.cv2_windows.resume()
-            
-        self.camera_manager.render(display)
-        self.hud_wintersim.render(display, self.world)
-       
+
         if self.multiple_window_setup == False and self.multiple_windows_enabled:
             self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world)
             self.multiple_window_setup = True
             self.cv2_windows.start()
             self.cv2_windows.pause()
-        
-        if self.multiple_windows_enabled:
+
+    def block_object_detection(self):
+        if self.multiple_windows_enabled and self.cv2_windows is not None:
             # if multiplewindows enabled, disable MultipleWindows thread flag
             self.cv2_windows.pause()
 
-        #self.camera_manager.render(display)
-        #self.hud_wintersim.render(display, self.world)
-        # if self.multiple_window_setup == False and self.multiple_windows_enabled:
-        #     self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world)
-        #     self.multiple_window_setup = True
-        # if self.multiple_windows_enabled:
-        #     self.cv2_windows.render_all_windows()
+    def render(self, display):
+        self.camera_manager.render(display)
+        self.hud_wintersim.render(display, self.world)
 
     def update_friction(self, iciness):
         actors = self.world.get_actors()
@@ -360,7 +355,6 @@ class World(object):
             self.player.destroy()
 
         
-
 # ==============================================================================
 # -- KeyboardControl -----------------------------------------------------------
 # ==============================================================================
@@ -760,6 +754,7 @@ def game_loop(args):
         count = 0
         while True:
             clock.tick_busy_loop(60)
+            world.render_object_detection()                                 # start detecting and rendering cv2 windows as early in the frame, uses another thread
             if controller.parse_events(client, world, clock, hud_wintersim):
                 return
             world.tick(clock, hud_wintersim)
@@ -773,6 +768,7 @@ def game_loop(args):
                 for s in hud_wintersim.sliders:
                     s.draw(display, s)
 
+            world.block_object_detection()                                  # block object detection till next frame (pauses thread)
             pygame.display.flip()
 
     finally:

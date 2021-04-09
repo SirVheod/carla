@@ -113,8 +113,8 @@ class MultipleWindows(threading.Thread):
             i = np.array(self.front_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
-            #i4 = detectionAPI.DetectObjects(i2, i3)
-            cv2.imshow("front RGB camera", i3)
+            i4 = detectionAPI.DetectObjects(i2, i3)
+            cv2.imshow("front RGB camera", i4)
 
             if self.recordImages:
                 self.counterimages += 1
@@ -180,11 +180,8 @@ class MultipleWindows(threading.Thread):
         self.world = world
         self.car = car
       
-        self.counter = 0
         self.counterimages = 0
         self.recordImages = False
-        self.pose = []
-        self.log = False
 
         # Front RGB camera
         self.front_rgb_camera_display = None
@@ -201,7 +198,7 @@ class MultipleWindows(threading.Thread):
         self.front_depth_display = None
         self.front_depth_image = None
 
-        #detectionAPI.Initialize()
+        detectionAPI.Initialize()
 
         self.setup_back_rgb_camera()
         self.setup_front_rgb_camera()
