@@ -10,6 +10,8 @@ import sys
 import cv2
 import os
 
+#import ffmpeg
+
 try:
     from wintersim_yolo_gpu_detection import ImageDetection as detectionAPI
 except ImportError:
@@ -121,13 +123,15 @@ class MultipleWindows(threading.Thread):
                 cv2.imshow("front RGB camera", i4)
             else:
                 cv2.imshow("front RGB camera", i3)
-                
+
             #saveVideo.save_frame(i4)
 
             if self.record_images:
                 self.imagecounter += 1
                 file_name = "img" + str(self.imagecounter)
                 save.save_single_image(file_name, i3)
+            
+            self.front_rgb_image = None
 
     def render_back_rgb_camera(self, rgb_display):
         if self.back_rgb_image is not None:
@@ -152,6 +156,7 @@ class MultipleWindows(threading.Thread):
         """Destroy spawned sensors and close all cv2 windows"""
         if self.record_images:
             save.save_images_to_video()
+            self.record_images = False
         self.stop()
         self.front_rgb_camera.destroy()
         self.back_rgb_camera.destroy()

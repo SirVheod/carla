@@ -3,6 +3,7 @@ import glob
 import cv2
 import sys
 import os
+import time
 
 class SaveImageUtil():
 
@@ -16,25 +17,19 @@ class SaveImageUtil():
             
         script_path = os.path.dirname(os.path.realpath(__file__))
         global path
-        path = script_path + "/images"
-        print(path)
+        #path = script_path + "/images"
+        path = script_path + "\\images/images" + '_' + str(time.time()) + '/'
+        os.mkdir(path)
 
     @staticmethod
     def save_single_image(filename, img):
         '''Save image to disk.'''
-        cv2.imwrite(os.path.join(path , filename + '.png'), img)
-
-    
-    def clear_images():
-        test = os.listdir(path)
-        for images in test:
-            if images.endswith(".jpg"):
-                os.remove(os.path.join(path, images))
+        cv2.imwrite(os.path.join(path , filename + '.jpg'), img)
 
     def save_images_to_video():
         image_folder = path
-        video_name = 'mygeneratedvideo.avi'
-        
+        video_name = 'video' + str(time.time()) + '.avi'
+
         images = [img for img in os.listdir(image_folder)
                 if img.endswith(".jpg") or img.endswith(".jpeg") or img.endswith("png")]
 
@@ -49,3 +44,9 @@ class SaveImageUtil():
         
         # Deallocating memories taken for window creation
         video.release()
+        
+        # delete all images from /images folder
+        # test = os.listdir(path)
+        # for images in test:
+        #     if images.endswith(".jpg"):
+        #         os.remove(os.path.join(path, images))
