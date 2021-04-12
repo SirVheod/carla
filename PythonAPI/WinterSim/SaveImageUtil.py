@@ -41,12 +41,11 @@ class SaveImageUtil():
         frame = cv2.imread(os.path.join(image_folder, images[0]))
         height, width, layers = frame.shape
 
-        video = cv2.VideoWriter(video_name,cv2.VideoWriter_fourcc(*'DIVX'), 15, (width, height))
-        #video = cv2.VideoWriter(video_name, 0, 5, (width, height))
+        video = cv2.VideoWriter(video_name,cv2.VideoWriter_fourcc(*'DIVX'), 7, (width, height))
     
         # Appending the images to the video one by one
         for image in images: 
             video.write(cv2.imread(os.path.join(image_folder, image))) 
         
         # Deallocating memories taken for window creation
-        video.release()  # releasing the video generated
+        video.release()

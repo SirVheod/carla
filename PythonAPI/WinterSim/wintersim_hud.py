@@ -260,26 +260,6 @@ class HUD_WINTERSIM(object):
         self.help_text.render(display)
         self.map.render(display)
 
-    def render_views(self, display, world, imgs):
-        xx = 20
-        yy = 30
-        #for view in imgs:
-            # x = np.arange(0, 300)
-            # y = np.arange(0, 300)
-            # X, Y = np.meshgrid(x, y)
-            # Z = X + Y
-            # Z = 255*Z/Z.max()
-            # surf = pygame.surfarray.make_surface(Z)
-            # display.blit(surf,(xx,yy))
-
-            #imgdata = pygame.surfarray.array3d(view)
-            #display.blit(imgdata,(xx,yy))
-            #pygame_img = pygame.image.frombuffer(view.tostring(), view.shape[1::-1], "RGB")
-            #display.blit(pygame_img, (pos_x, pos_y))
-            #xx = xx + 5
-            #yy = yy + 5
-
-
 # ==============================================================================
 # -- SliderObject -------------------------------------------------------------
 # ==============================================================================

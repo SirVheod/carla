@@ -47,7 +47,8 @@ Use ARROWS or WASD keys for control.
     CTRL + -     : decrements the start time of the replay by 1 second (+SHIFT = 10 seconds)
 
 
-    F8           : spawn windows
+    F8           : spawn cv2 windows with yolo object detection (requires NVIDIA GPU and weight files!)
+    F9           : spawn cv2 windows with no detection
 
     F1           : toggle HUD
     H/?          : toggle help
@@ -113,6 +114,7 @@ try:
     from pygame.locals import K_F1
     from pygame.locals import K_F2
     from pygame.locals import K_F8
+    from pygame.locals import K_F9
     from pygame.locals import K_LEFT
     from pygame.locals import K_PERIOD
     from pygame.locals import K_RIGHT
@@ -181,6 +183,7 @@ class World(object):
             print('  The server could not send the OpenDRIVE (.xodr) file:')
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
+        self.args = args
         self.multiple_windows_enabled = args.windows
         self.cv2_windows = None
         self.hud_wintersim = hud_wintersim
@@ -258,6 +261,7 @@ class World(object):
         actor_type = get_actor_display_name(self.player)
         self.hud_wintersim.notification(actor_type)
         self.multiple_window_setup = False
+        self.detection = True
 
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
@@ -299,7 +303,7 @@ class World(object):
             self.cv2_windows.resume()
 
         if self.multiple_window_setup == False and self.multiple_windows_enabled:
-            self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world)
+            self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
             self.multiple_window_setup = True
             self.cv2_windows.start()
             self.cv2_windows.pause()
@@ -312,6 +316,12 @@ class World(object):
     def render(self, display):
         self.camera_manager.render(display)
         self.hud_wintersim.render(display, self.world)
+
+    def toggle_cv2_windows(self):
+        self.multiple_windows_enabled = not self.multiple_windows_enabled
+        if self.multiple_windows_enabled == False and self.cv2_windows is not None:
+            self.cv2_windows.destroy()
+            self.multiple_window_setup = False
 
     def update_friction(self, iciness):
         actors = self.world.get_actors()
@@ -375,6 +385,7 @@ class KeyboardControl(object):
         self._steer_cache = 0.0
         world.hud_wintersim.notification("Press 'H' or '?' for help.", seconds=4.0)
 
+
     def parse_events(self, client, world, clock, hud_wintersim):
         if isinstance(self._control, carla.VehicleControl):
             current_lights = self._lights
@@ -405,11 +416,13 @@ class KeyboardControl(object):
                     #if not hud_wintersim.is_map:
                         #hud_wintersim.is_map = True
                 elif event.key == K_F8:
-                    world.multiple_windows_enabled = not world.multiple_windows_enabled
-                    if world.multiple_windows_enabled == False and world.cv2_windows is not None:
-                        world.cv2_windows.destroy()
-                        world.multiple_window_setup = False
+                    world.detection = True
+                    world.toggle_cv2_windows()
 
+                elif event.key == K_F9:
+                    world.detection = False
+                    world.toggle_cv2_windows()
+                   
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
                     world.next_map_layer(reverse=True)
                 elif event.key == K_v:
@@ -769,7 +782,7 @@ def game_loop(args):
                 for s in hud_wintersim.sliders:
                     s.draw(display, s)
 
-            world.block_object_detection()                                  # block object detection till next frame (pauses)
+            #world.block_object_detection()                                  # block object detection till next frame (pauses thread)
             pygame.display.flip()
 
     finally:
@@ -831,6 +844,11 @@ def main():
         default=False,
         type=bool,
         help='multiplewindows')
+    argparser.add_argument(
+        '--record',
+        default=False,
+        type=bool,
+        help='record cv2 windows')
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]
@@ -844,7 +862,6 @@ def main():
 
     try:
         game_loop(args)
-
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
 

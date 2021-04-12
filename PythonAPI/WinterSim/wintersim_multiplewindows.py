@@ -1,14 +1,14 @@
-import cv2
-import random
-import weakref
-import carla
-import glob
-import os
-import sys
-import time
+
 from SaveImageUtil import SaveImageUtil as save
-#from SaveVideoUtil import SaveVideoUtil as saveVideo
 import threading
+import weakref
+import random
+import carla
+import time
+import glob
+import sys
+import cv2
+import os
 
 try:
     from wintersim_yolo_gpu_detection import ImageDetection as detectionAPI
@@ -34,7 +34,7 @@ VIEW_HEIGHT = 384
 VIEW_FOV = 70
 
 class MultipleWindows(threading.Thread):
-    """ Wintersim threaded multiplewindows class. """
+    """ Wintersim multiplewindows class. Rendering CV2 windows happens in different thread than main pygame loop."""
 
     def camera_blueprint(self):
         """ Returns camera blueprint."""
@@ -65,7 +65,7 @@ class MultipleWindows(threading.Thread):
     def setup_back_rgb_camera(self):
         """ Spawns actor-camera to be used to RGB camera view.
         Sets calibration for client-side boxes rendering. """
-        camera_transform = carla.Transform(carla.Location(x=-3.5, z=1.5), carla.Rotation(pitch=-10, yaw=180))
+        camera_transform = carla.Transform(carla.Location(x=-3.5, z=2.0), carla.Rotation(pitch=-10, yaw=180))
         self.back_rgb_camera = self.world.spawn_actor(self.camera_blueprint(), camera_transform, attach_to=self.car)
         weak_back_rgb_self = weakref.ref(self)
         self.back_rgb_camera.listen(lambda back_rgb_image: weak_back_rgb_self(
@@ -103,77 +103,54 @@ class MultipleWindows(threading.Thread):
 
     def render_front_depth(self, front_depth_display):
         if self.front_depth_image is not None:
-            i = np.array(self.front_depth_image.raw_data)
+            #i = np.array(self.front_depth_image.raw_data)
+            i = np.asarray(self.front_depth_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
-            #i4 = detectionAPI.DetectObjects(i3)
+            #i4 = detectionAPI.detect_objects(i2, i3)
             cv2.imshow("front_depth_image", i3)
 
     def render_front_rgb_camera(self, rgb_display):
         if self.front_rgb_image is not None:
-            i = np.array(self.front_rgb_image.raw_data)
+            #i = np.array(self.front_rgb_image.raw_data)
+            i = np.asarray(self.front_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
-            i4 = detectionAPI.DetectObjects(i2, i3)
-            cv2.imshow("front RGB camera", i4)
-
+            if self.detection:
+                i4 = detectionAPI.detect_objects(i2, i3)
+                cv2.imshow("front RGB camera", i4)
+            else:
+                cv2.imshow("front RGB camera", i3)
+                
             #saveVideo.save_frame(i4)
 
-            if self.recordImages:
-                self.counterimages += 1
-                file_name = "img" + str(self.counterimages)
+            if self.record_images:
+                self.imagecounter += 1
+                file_name = "img" + str(self.imagecounter)
                 save.save_single_image(file_name, i3)
 
     def render_back_rgb_camera(self, rgb_display):
         if self.back_rgb_image is not None:
-            i = np.array(self.back_rgb_image.raw_data)
+            #i = np.array(self.back_rgb_image.raw_data)
+            i = np.asarray(self.back_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
-            #i4 = detectionAPI.DetectObjects(i2, i3)
-            cv2.imshow("back RGB camera", i3)
+
+            if self.detection:
+                i4 = detectionAPI.detect_objects(i2, i3)
+                cv2.imshow("back RGB camera", i4)
+            else:
+                cv2.imshow("back RGB camera", i3)
 
     def render_all_windows(self):
         """ Render all separate sensors (cv2 windows)"""
-        start_time = time.time()
-        
-        self.render_front_rgb_camera(self.front_rgb_camera_display)
-        self.render_front_depth(self.front_depth_display)
         self.render_back_rgb_camera(self.back_rgb_camera_display)
-
-        toc = time.perf_counter()
-        fps = int(1.0 / (time.time() - start_time))
-        print("Object detection FPS: ", fps)
-
-    def render_views(self):
-        #todo
-        imgs = []
-
-        if self.front_rgb_image is not None:
-            i = np.array(self.front_rgb_image.raw_data)
-            i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
-            #i4 = i2[:, :, :3]
-            i4 = detectionAPI.DetectObjects(i2)
-            imgs.append(i4)
-
-        if self.front_depth_image is not None:
-            i = np.array(self.front_depth_image.raw_data)
-            i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
-            i3 = i2[:, :, :3]
-            imgs.append(i3)
-
-        if self.back_rgb_image is not None:
-            i = np.array(self.back_rgb_image.raw_data)
-            i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
-            #i3 = i2[:, :, :3]
-            i4 = detectionAPI.DetectObjects(i2)
-            imgs.append(i4)
-
-        return imgs
-
+        self.render_front_depth(self.front_depth_display)
+        self.render_front_rgb_camera(self.front_rgb_camera_display)
+        
     def destroy(self):
         """Destroy spawned sensors and close all cv2 windows"""
-        #saveVideo.make_video()
-        if self.recordImages:
+        if self.record_images:
             save.save_images_to_video()
         self.stop()
         self.front_rgb_camera.destroy()
@@ -181,7 +158,7 @@ class MultipleWindows(threading.Thread):
         self.depth_camera.destroy()
         cv2.destroyAllWindows()
 
-    def __init__(self, car, camera, world):
+    def __init__(self, car, camera, world, record, detection):
         super(MultipleWindows, self).__init__()
         self.__flag = threading.Event()             # The flag used to pause the thread
         self.__flag.set()                           # Set to True
@@ -191,10 +168,10 @@ class MultipleWindows(threading.Thread):
         self.camera = camera
         self.world = world
         self.car = car
-      
-        self.counterimages = 0
-        self.recordImages = False
-
+        self.record_images = record
+        self.detection = detection
+        self.imagecounter = 0
+       
         # Front RGB camera
         self.front_rgb_camera_display = None
         self.front_rgb_camera = None
@@ -210,10 +187,9 @@ class MultipleWindows(threading.Thread):
         self.front_depth_display = None
         self.front_depth_image = None
 
-
         save.initialize()
-        #saveVideo.initialize()
-        detectionAPI.Initialize()
+        if self.detection:
+            detectionAPI.Initialize()
 
         self.setup_back_rgb_camera()
         self.setup_front_rgb_camera()
