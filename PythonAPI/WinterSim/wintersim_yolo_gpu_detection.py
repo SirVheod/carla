@@ -11,12 +11,14 @@ class ImageDetection():
 
     @staticmethod
     def Initialize():
+        '''Initialize ImageDetection class. 
+        Call this before calling detect_objects function!'''
         global options, tfnet, color
 
-        # load cfg and weight file
-        options = {"model": "cfg/yolo.cfg", "load": "yolo.weights", "threshold": 0.5, "gpu": 0.6}                       # slowest but best accuracy, change load.py line 121 to 16
-        #options = {"model": "cfg/yolov2.cfg", "load": "yolov2.weights", "threshold": 0.5, "gpu": 0.5}                  # slow, change load.py line 121 to 16
-        #options = {"model": "cfg/yolov2-tiny-voc.cfg", "load": "yolov2-tiny.weights", "threshold": 0.5, "gpu": 0.5}    # fast, change load.py line 121 to 20
+        # load cfg and weight file, download these files and put them under config/ folder.
+        options = {"model": "config/yolo.cfg", "load": "config/yolo.weights", "threshold": 0.5, "gpu": 0.6}                       # slowest but best accuracy, change load.py line 121 to 16
+        #options = {"model": "config/yolov2.cfg", "load": "config/yolov2.weights", "threshold": 0.5, "gpu": 0.5}                  # slow, change load.py line 121 to 16
+        #options = {"model": "config/yolov2-tiny-voc.cfg", "load": "config/yolov2-tiny.weights", "threshold": 0.5, "gpu": 0.5}    # fast, change load.py line 121 to 20
 
         tfnet = TFNet(options)
         color = (255, 0, 0)
@@ -52,6 +54,5 @@ class ImageDetection():
         fps = int(1.0 / (time.time() - start_time))
         fps_text = str(fps) + " FPS"
         cv2.putText(img, fps_text, (15, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-        #print("Object detection FPS: ", fps)
 
         return img

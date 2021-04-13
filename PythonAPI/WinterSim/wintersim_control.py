@@ -303,6 +303,7 @@ class World(object):
             self.cv2_windows.resume()
 
         if self.multiple_window_setup == False and self.multiple_windows_enabled:
+            # setup wintersim_multiplewindows.py
             self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
             self.multiple_window_setup = True
             self.cv2_windows.start()

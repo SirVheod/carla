@@ -10,8 +10,6 @@ import sys
 import cv2
 import os
 
-#import ffmpeg
-
 try:
     from wintersim_yolo_gpu_detection import ImageDetection as detectionAPI
 except ImportError:
@@ -65,8 +63,8 @@ class MultipleWindows(threading.Thread):
         self.front_rgb_camera_display = cv2.namedWindow('front RGB camera')
 
     def setup_back_rgb_camera(self):
-        """ Spawns actor-camera to be used to RGB camera view.
-        Sets calibration for client-side boxes rendering. """
+        """ Spawns actor-camera to be used to vehicle back RGB camera view.
+        set_front_depth_image method gets callback from camera"""
         camera_transform = carla.Transform(carla.Location(x=-3.5, z=2.0), carla.Rotation(pitch=-10, yaw=180))
         self.back_rgb_camera = self.world.spawn_actor(self.camera_blueprint(), camera_transform, attach_to=self.car)
         weak_back_rgb_self = weakref.ref(self)
@@ -75,8 +73,8 @@ class MultipleWindows(threading.Thread):
         self.back_rgb_camera_display = cv2.namedWindow('back RGB camera')
 
     def setup_front_depth_camera(self):
-        """ Spawns actor-camera to be used to render view.
-        Sets calibration for client-side boxes rendering. """
+        """ Spawns actor-camera to be used front dept-camera.
+       front_depth_image method gets callback from camera """
         depth_camera_transform = carla.Transform(carla.Location(x=0, z=2.8), carla.Rotation(pitch=0))
         self.depth_camera = self.world.spawn_actor(
             self.depth_camera_blueprint(), depth_camera_transform, attach_to=self.car)
@@ -87,23 +85,24 @@ class MultipleWindows(threading.Thread):
 
     @staticmethod
     def set_front_rgb_image(weak_self, img):
-        """ Sets image coming from camera sensor. """
+        """ Sets image coming from front RGB camera sensor. """
         self = weak_self()
         self.front_rgb_image = img
 
     @staticmethod
     def set_back_rgb_image(weak_self, img):
-        """ Sets image coming from camera sensor. """
+        """ Sets image coming from back RGB camera sensor. """
         self = weak_self()
         self.back_rgb_image = img
 
     @staticmethod
     def set_front_depth_image(weak_depth_self, depth_img):
-        """ Sets image coming from camera sensor. """
+        """ Sets image coming from depth camera sensor. """
         self = weak_depth_self()
         self.front_depth_image = depth_img
 
     def render_front_depth(self, front_depth_display):
+        """ Render front depth camera"""
         if self.front_depth_image is not None:
             #i = np.array(self.front_depth_image.raw_data)
             i = np.asarray(self.front_depth_image.raw_data)
@@ -113,6 +112,7 @@ class MultipleWindows(threading.Thread):
             cv2.imshow("front_depth_image", i3)
 
     def render_front_rgb_camera(self, rgb_display):
+        """ Render front RGB camera"""
         if self.front_rgb_image is not None:
             #i = np.array(self.front_rgb_image.raw_data)
             i = np.asarray(self.front_rgb_image.raw_data)
@@ -134,6 +134,7 @@ class MultipleWindows(threading.Thread):
             self.front_rgb_image = None
 
     def render_back_rgb_camera(self, rgb_display):
+        """ Render back RGB camera"""
         if self.back_rgb_image is not None:
             #i = np.array(self.back_rgb_image.raw_data)
             i = np.asarray(self.back_rgb_image.raw_data)
@@ -193,6 +194,7 @@ class MultipleWindows(threading.Thread):
         self.front_depth_image = None
 
         save.initialize()
+
         if self.detection:
             detectionAPI.Initialize()
 

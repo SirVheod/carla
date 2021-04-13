@@ -11,7 +11,7 @@ class SaveImageUtil():
     
     @staticmethod
     def initialize():
-        '''Initilize image utility. Make images folder to current script folder if it doesn't already exits'''
+        '''Initilize image utility.'''
         if not os.path.exists('images'):
             os.makedirs('images')
             
