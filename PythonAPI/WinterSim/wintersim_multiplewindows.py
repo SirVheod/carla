@@ -29,6 +29,7 @@ try:
 except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
 
+# cv2 window width, height and camera fov
 VIEW_WIDTH = 608
 VIEW_HEIGHT = 384
 VIEW_FOV = 70
@@ -104,17 +105,14 @@ class MultipleWindows(threading.Thread):
     def render_front_depth(self, front_depth_display):
         """ Render front depth camera"""
         if self.front_depth_image is not None:
-            #i = np.array(self.front_depth_image.raw_data)
             i = np.asarray(self.front_depth_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
-            #i4 = detectionAPI.detect_objects(i2, i3)
             cv2.imshow("front_depth_image", i3)
 
     def render_front_rgb_camera(self, rgb_display):
         """ Render front RGB camera"""
         if self.front_rgb_image is not None:
-            #i = np.array(self.front_rgb_image.raw_data)
             i = np.asarray(self.front_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
@@ -123,8 +121,6 @@ class MultipleWindows(threading.Thread):
                 cv2.imshow("front RGB camera", i4)
             else:
                 cv2.imshow("front RGB camera", i3)
-
-            #saveVideo.save_frame(i4)
 
             if self.record_images:
                 self.imagecounter += 1
@@ -136,11 +132,9 @@ class MultipleWindows(threading.Thread):
     def render_back_rgb_camera(self, rgb_display):
         """ Render back RGB camera"""
         if self.back_rgb_image is not None:
-            #i = np.array(self.back_rgb_image.raw_data)
             i = np.asarray(self.back_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
-
             if self.detection:
                 i4 = detectionAPI.detect_objects(i2, i3)
                 cv2.imshow("back RGB camera", i4)
@@ -193,6 +187,7 @@ class MultipleWindows(threading.Thread):
         self.front_depth_display = None
         self.front_depth_image = None
 
+        # init save image utility
         save.initialize()
 
         if self.detection:

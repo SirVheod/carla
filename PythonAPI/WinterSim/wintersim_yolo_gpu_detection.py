@@ -12,7 +12,7 @@ class ImageDetection():
     @staticmethod
     def Initialize():
         '''Initialize ImageDetection class. 
-        Call this before calling detect_objects function!'''
+        Call this before calling detect_objects function'''
         global options, tfnet, color
 
         # load cfg and weight file, download these files and put them under config/ folder.
