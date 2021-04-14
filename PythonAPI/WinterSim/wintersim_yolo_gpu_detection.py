@@ -24,13 +24,16 @@ class ImageDetection():
         color = (255, 0, 0)
 
     @staticmethod
-    def detect_objects(img, image):
-        '''Detect objects from image'''
+    def detect_objects(img, image, callback):
+        '''Detect objects from input image.'''
 
         start_time = time.time()
        
         # Pass image to detector
         result = tfnet.return_predict(image)
+
+        if callback is not None:
+            callback(result)
 
         for index in range(len(result)):
             # Parse list of dictionaries

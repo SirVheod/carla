@@ -109,6 +109,9 @@ class MultipleWindows(threading.Thread):
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
             cv2.imshow("front_depth_image", i3)
+   
+    def callback_example(self, result):
+        print("callback")
 
     def render_front_rgb_camera(self, rgb_display):
         """ Render front RGB camera"""
@@ -117,7 +120,8 @@ class MultipleWindows(threading.Thread):
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
             if self.detection:
-                i4 = detectionAPI.detect_objects(i2, i3)
+                #i4 = detectionAPI.detect_objects(i2, i3, self.callback_example)
+                i4 = detectionAPI.detect_objects(i2, i3, None)
                 cv2.imshow("front RGB camera", i4)
             else:
                 cv2.imshow("front RGB camera", i3)
@@ -136,7 +140,7 @@ class MultipleWindows(threading.Thread):
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
             if self.detection:
-                i4 = detectionAPI.detect_objects(i2, i3)
+                i4 = detectionAPI.detect_objects(i2, i3, None)
                 cv2.imshow("back RGB camera", i4)
             else:
                 cv2.imshow("back RGB camera", i3)
