@@ -47,10 +47,9 @@ Use ARROWS or WASD keys for control.
     CTRL + -     : decrements the start time of the replay by 1 second (+SHIFT = 10 seconds)
 
 
-    F8           : spawn cv2 windows with yolo object detection (requires NVIDIA GPU and weight files!)
-    F9           : spawn cv2 windows with no detection
-
     F1           : toggle HUD
+    F8           : Open CV2 windows with object detection (Requires NVIDIA GPU + CUDA!)
+    F9           : Open CV2 Windows without object detection
     H/?          : toggle help
     ESC          : quit;
 """
