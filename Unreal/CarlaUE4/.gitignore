@@ -13,18 +13,8 @@ Plugins/Carla/DerivedDataCache
 Plugins/Carla/Intermediate
 Plugins/Carla/Saved
 
-#/Content
-Content/*
-!Content/Carla/
-Content/Carla/*
-!Content/Carla/Blueprints/
-!Content/Carla/Static/
-Content/Carla/Blueprints/*
-Content/Carla/Static/*
-!Content/Carla/Blueprints/Weather/
-!Content/Carla/Static/Particles/
-Content/Carla/Static/Particles/*
-!Content/Carla/Static/Particles/rain/
+/WindowsNoEditor
+/Content
 
 Config/CarlaSettings.ini
 Config/DefaultEditor.ini

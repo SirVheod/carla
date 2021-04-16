@@ -838,13 +838,9 @@ def main():
     print(__doc__)
 
     try:
-
         game_loop(args)
-
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
 
-
 if __name__ == '__main__':
-
     main()
