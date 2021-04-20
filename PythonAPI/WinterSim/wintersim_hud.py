@@ -116,7 +116,7 @@ class HUD_WINTERSIM(object):
         self.ice_slider.val = preset.ice_amount
         self.temp_slider.val = preset.temperature
         self.rain_slider.val = preset.precipitation
-        self.fog_slider.val = preset.precipitation/2
+        self.fog_slider.val = preset.fog_density
         self.wind_slider.val = preset.wind_intensity*100.0
 
     def tick(self, world, clock, hud_wintersim):

@@ -36,12 +36,17 @@ namespace rpc {
     static WeatherParameters MidRainSunset;
     static WeatherParameters HardRainSunset;
     static WeatherParameters SoftRainSunset;
+
+	static WeatherParameters WinterMorning;
+	static WeatherParameters WinterNoon;
+	static WeatherParameters WinterCloudyNoon;
+	static WeatherParameters WinterNight;
     static WeatherParameters SoftSnowNoon;    
     static WeatherParameters MidSnowNoon;
     static WeatherParameters HardSnowNoon;
-    static WeatherParameters SoftSnowSunset;    
-    static WeatherParameters MidSnowSunset;
-    static WeatherParameters HardSnowSunset;
+    static WeatherParameters SoftSnowMorning;
+    static WeatherParameters MidSnowMorning;
+    static WeatherParameters HardSnowMorning;
 
     /// @}
 

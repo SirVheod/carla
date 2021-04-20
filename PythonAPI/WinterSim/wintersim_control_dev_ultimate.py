@@ -65,6 +65,7 @@ import sys
 import re
 import threading
 import time
+from queue import Queue
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -94,6 +95,17 @@ import re
 import weakref
 import wintersim_hud
 import wintersim_sensors
+
+from data_collector import collector_dev as collector
+from data_collector.bounding_box import create_kitti_datapoint
+from data_collector.constants import *
+from data_collector import image_converter
+from data_collector.dataexport import *
+
+from matplotlib import cm
+import open3d as o3d
+
+from object_detection import test_both_side_detection_dev as object_detection
 
 try:
     import pygame
@@ -133,6 +145,7 @@ try:
     from pygame.locals import K_w
     from pygame.locals import K_x
     from pygame.locals import K_z
+    from pygame.locals import K_o
     from pygame.locals import K_MINUS
     from pygame.locals import K_EQUALS
 except ImportError:
@@ -199,6 +212,7 @@ class World(object):
         self.world.set_weather(preset[0])
         self.player.gud_frictiong_enabled = False
         self.recording_start = 0
+        self.record_data = False
         self.constant_velocity_enabled = False
         self.current_map_layer = 0
         self.world.on_tick(self.hud_wintersim.on_world_tick)
@@ -398,6 +412,8 @@ class KeyboardControl(object):
                     world.camera_manager.next_sensor()
                 elif event.key == K_n:
                     world.camera_manager.next_sensor()
+                elif event.key == K_o:
+                    world.record_data = not world.record_data
                 elif event.key == K_w and (pygame.key.get_mods() & KMOD_CTRL):
                     if world.constant_velocity_enabled:
                         world.player.disable_constant_velocity()
@@ -702,7 +718,7 @@ def game_loop(args):
 
     try:
         client = carla.Client(args.host, args.port)
-        client.set_timeout(2.0)
+        client.set_timeout(2.0)        
 
         display = pygame.display.set_mode(
             (args.width, args.height),
@@ -711,17 +727,31 @@ def game_loop(args):
         pygame.display.flip()
 
         hud_wintersim = wintersim_hud.HUD_WINTERSIM(args.width, args.height, display)
-        hud_wintersim.make_sliders()
+        hud_wintersim.make_sliders() 
         world = World(client.get_world(), hud_wintersim, args)
         world.preset = world._weather_presets[0] #start weather preset
         hud_wintersim.update_sliders(world.preset[0]) #update sliders to positions according to preset
         controller = KeyboardControl(world, args.autopilot)
         weather = wintersim_hud.Weather(client.get_world().get_weather()) #weather object to update carla weather with sliders
         clock = pygame.time.Clock()
-        count = 0
+
+        q = Queue()
+        data_thread = ObjectDetection(q, args=(False))
+        data_thread.start()
+        isResumed = False
+        dataLidar = None
+
+        original_settings = client.get_world().get_settings()
+        settings = client.get_world().get_settings()
+        settings.fixed_delta_seconds = 0.05
+        settings.synchronous_mode = True
+
         while True:
-            clock.tick_busy_loop(60)
-            if controller.parse_events(client, world, clock, hud_wintersim):
+            if isResumed:
+                clock.tick_busy_loop(40)
+            else:
+                clock.tick_busy_loop(60)
+            if controller.parse_events(client, world, clock, hud_wintersim): 
                 return
             world.tick(clock, hud_wintersim)
             world.render(display)
@@ -733,14 +763,91 @@ def game_loop(args):
                         client.get_world().set_weather(weather.weather) #send weather
                 for s in hud_wintersim.sliders:
                     s.draw(display, s)
+            if world.record_data and not isResumed:
+                if dataLidar is None:
+                    dataLidar = spawn_lidar(world.player, world)
+                    dataLidar.listen(lambda data: data_thread.update(data))
+                isResumed = True
+                client.get_world().apply_settings(settings)
+                data_thread.resume()
+            if not world.record_data and isResumed:
+                if dataLidar is not None:
+                    dataLidar.destroy()
+                    dataLidar = None
+                isResumed = False
+                client.get_world().apply_settings(original_settings)
+                data_thread.pause()
+            if isResumed:
+                client.get_world().tick()
             pygame.display.flip()
 
     finally:
-
         if world is not None:
             world.destroy()
 
         pygame.quit()
+
+# ==============================================================================
+# -- thread for object detection() ---------------------------------------------
+# ==============================================================================
+
+class ObjectDetection(threading.Thread):
+    def __init__(self, queue, args=(), kwargs=None):
+        threading.Thread.__init__(self, args=(), kwargs=None)
+        self.opt, self.model = object_detection.main()
+        self.queue = queue
+        self.daemon = True
+        self.paused = args
+        self.state = threading.Condition()
+        self.data = None
+
+    def run(self):
+        self.pause()
+        while True:
+            with self.state:
+                if self.paused:
+                    self.state.wait()  # Block execution until notified.
+            if self.data is not None: #
+                data = np.copy(np.frombuffer(self.data.raw_data, dtype=np.dtype('f4')))
+                data = np.reshape(data, (int(data.shape[0] / 4), 4))
+                points = data[:, :-1]
+                lidar_array = [[point[0], -point[1], point[2], 1.0] for point in points]
+                lidar_array = np.array(lidar_array).astype(np.float32).reshape(-1, 4)
+                if points.any() and len(points) > 0:
+                    object_detection.detect(self.opt, self.model, lidar_array)
+
+
+    def pause(self):
+        with self.state:
+            self.paused = True  # Block self.
+
+    def resume(self):
+        with self.state:
+            self.paused = False
+            self.state.notify()  # Unblock self if waiting.
+
+    def update(self, pointcloud):
+        with self.state:
+            self.data = pointcloud
+
+# ==============================================================================
+# -- spawn lidar for object detection() ----------------------------------------
+# ==============================================================================
+
+def spawn_lidar(player, world):
+    blueprint_library = world.world.get_blueprint_library()
+    lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
+    lidar_bp.set_attribute('range', '50')
+    lidar_bp.set_attribute('rotation_frequency', '20')
+    lidar_bp.set_attribute('upper_fov', '2')
+    lidar_bp.set_attribute('lower_fov', '-26.8')
+    lidar_bp.set_attribute('points_per_second', '320000')
+    lidar_bp.set_attribute('channels', '32')
+
+    transform_sensor = carla.Transform(carla.Location(x=0, y=0, z=CAMERA_HEIGHT_POS))
+
+    my_lidar = world.world.spawn_actor(lidar_bp, transform_sensor, attach_to=player)
+    return my_lidar
 
 
 # ==============================================================================

@@ -95,7 +95,7 @@ class Weather(object):
         self.weather.precipitation = self._storm.rain
         self.weather.precipitation_deposits = self._storm.puddles
         self.weather.wind_intensity = self._storm.wind
-        self.weather.fog_density = self._storm.fog
+        self.weather.fog_density = 0
         self.weather.wetness = self._storm.wetness
         self.weather.sun_azimuth_angle = self._sun.azimuth
         self.weather.sun_altitude_angle = self._sun.altitude
