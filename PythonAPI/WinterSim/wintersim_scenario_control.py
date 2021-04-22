@@ -81,9 +81,7 @@ except IndexError:
 
 
 import carla
-
 from carla import ColorConverter as cc
-
 import argparse
 import collections
 import datetime
@@ -94,6 +92,7 @@ import re
 import weakref
 from WinterSim import wintersim_hud
 from WinterSim import wintersim_sensors
+from wintersim_multiplewindows import MultipleWindows
 
 try:
     import pygame
@@ -108,6 +107,8 @@ try:
     from pygame.locals import K_ESCAPE
     from pygame.locals import K_F1
     from pygame.locals import K_F2
+    from pygame.locals import K_F8
+    from pygame.locals import K_F9
     from pygame.locals import K_LEFT
     from pygame.locals import K_PERIOD
     from pygame.locals import K_RIGHT
@@ -176,6 +177,9 @@ class World(object):
             print('  The server could not send the OpenDRIVE (.xodr) file:')
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
+        self.args = args
+        self.multiple_windows_enabled = args.windows
+        self.cv2_windows = None
         self.hud_wintersim = hud_wintersim
         self.ud_friction = True
         self.preset = None
@@ -252,6 +256,8 @@ class World(object):
         self.camera_manager.set_sensor(cam_index, notify=False)
         actor_type = get_actor_display_name(self.player)
         self.hud_wintersim.notification(actor_type)
+        self.multiple_window_setup = False
+        self.detection = False
 
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
@@ -295,6 +301,33 @@ class World(object):
 
     def tick(self, clock, hud_wintersim):
         self.hud_wintersim.tick(self, clock, hud_wintersim)
+
+    def render_object_detection(self):
+        if self.multiple_windows_enabled and self.multiple_window_setup:
+            # if multiplewindows enabled and setup done, enable MultipleWindows thread flag
+            self.cv2_windows.resume()
+
+        if self.multiple_window_setup == False and self.multiple_windows_enabled:
+            # setup wintersim_multiplewindows.py
+            self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
+            self.multiple_window_setup = True
+            self.cv2_windows.start()
+            self.cv2_windows.pause()
+
+    def block_object_detection(self):
+        if self.multiple_windows_enabled and self.cv2_windows is not None:
+            # if multiplewindows enabled, disable MultipleWindows thread flag
+            self.cv2_windows.pause()
+
+    def render(self, display):
+        self.camera_manager.render(display)
+        self.hud_wintersim.render(display, self.world)
+
+    def toggle_cv2_windows(self):
+        self.multiple_windows_enabled = not self.multiple_windows_enabled
+        if self.multiple_windows_enabled == False and self.cv2_windows is not None:
+            self.cv2_windows.destroy()
+            self.multiple_window_setup = False
 
     def render(self, display):
         self.camera_manager.render(display)
@@ -407,6 +440,13 @@ class KeyboardControl(object):
                     world.hud_wintersim.toggle_info(world)
                 elif event.key == K_F2:
                     world.hud_wintersim.map.toggle()
+                elif event.key == K_F8:
+                    world.detection = True
+                    world.toggle_cv2_windows()
+
+                elif event.key == K_F9:
+                    world.detection = False
+                    world.toggle_cv2_windows()
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
                     world.next_map_layer(reverse=True)
                 elif event.key == K_v:
