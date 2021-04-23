@@ -47,3 +47,14 @@ _out*
 _site
 core
 profiler.csv
+
+
+**/PythonAPI/WinterSim/cfg
+**/PythonAPI/WinterSim/darkflow
+**/PythonAPI/WinterSim/darkflow.egg-info
+**/PythonAPI/WinterSim/config
+**/PythonAPI/WinterSim/flow*
+**/PythonAPI/WinterSim/setup*
+**/PythonAPI/WinterSim/label*
+**/PythonAPI/WinterSim/test
+**/PythonAPI/WinterSim/*.avi

@@ -233,22 +233,36 @@ class World(object):
         cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
         # Get a vehicle according to arg parameter.
         blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
+
+        # Get the ego vehicle
+        if self.args.scenario:
+            while self.player is None:
+                print("Waiting for the ego vehicle...")
+                time.sleep(1)
+                possible_vehicles = self.world.get_actors().filter('vehicle.*')
+                for vehicle in possible_vehicles:
+                    if vehicle.attributes['role_name'] == "hero":
+                        print("Ego vehicle found")
+                        self.player = vehicle
+                        break
+
         # Spawn the player.
-        if self.player is not None:
-            spawn_point = self.player.get_transform()
-            spawn_point.location.z += 2.0
-            spawn_point.rotation.roll = 0.0
-            spawn_point.rotation.pitch = 0.0
-            self.destroy()
-            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
-        while self.player is None:
-            if not self.map.get_spawn_points():
-                print('There are no spawn points available in your map/town.')
-                print('Please add some Vehicle Spawn Point to your UE4 scene.')
-                sys.exit(1)
-            spawn_points = self.map.get_spawn_points()
-            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()#spawn_points[727]#random.choice(spawn_points) if spawn_points else carla.Transform()
-            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+        if not self.args.scenario:
+            if self.player is not None:
+                spawn_point = self.player.get_transform()
+                spawn_point.location.z += 2.0
+                spawn_point.rotation.roll = 0.0
+                spawn_point.rotation.pitch = 0.0
+                self.destroy()
+                self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+            while self.player is None:
+                if not self.map.get_spawn_points():
+                    print('There are no spawn points available in your map/town.')
+                    print('Please add some Vehicle Spawn Point to your UE4 scene.')
+                    sys.exit(1)
+                spawn_points = self.map.get_spawn_points()
+                spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()#spawn_points[727]#random.choice(spawn_points) if spawn_points else carla.Transform()
+                self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         # Set up the sensors.
         self.collision_sensor = wintersim_sensors.CollisionSensor(self.player, self.hud_wintersim)
         self.lane_invasion_sensor = wintersim_sensors.LaneInvasionSensor(self.player, self.hud_wintersim)
@@ -849,6 +863,11 @@ def main():
         default=False,
         type=bool,
         help='record cv2 windows')
+    argparser.add_argument(
+        '--scenario',
+        default=True,
+        type=bool,
+        help='is scenario')
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]
