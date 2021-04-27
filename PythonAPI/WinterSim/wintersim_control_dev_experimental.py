@@ -292,6 +292,7 @@ class World(object):
         if self.radar_sensor is None:
             self.radar_sensor = wintersim_sensors.RadarSensor(self.player)
         elif self.radar_sensor.sensor is not None:
+            #self.radar_sensor.data_thread.pause()
             self.radar_sensor.sensor.destroy()
             self.radar_sensor = None
 
@@ -736,7 +737,7 @@ def game_loop(args):
         clock = pygame.time.Clock()
 
         q = Queue()
-        data_thread = ObjectDetection(q, args=(False))
+        data_thread = LidarObjectDetection(q, args=(False))
         data_thread.start()
         isResumed = False
         dataLidar = None
@@ -748,7 +749,7 @@ def game_loop(args):
 
         while True:
             if isResumed:
-                clock.tick_busy_loop(40)
+                clock.tick_busy_loop(20)
             else:
                 clock.tick_busy_loop(60)
             if controller.parse_events(client, world, clock, hud_wintersim): 
@@ -756,7 +757,7 @@ def game_loop(args):
             world.tick(clock, hud_wintersim)
             world.render(display)
             if hud_wintersim.is_hud:
-                for s in hud_wintersim.sliders: 
+                for s in hud_wintersim.sliders:
                     if s.hit: #if slider is being touched
                         s.move() #move slider
                         weather.tick(hud_wintersim, world.preset[0]) #update weather object
@@ -782,16 +783,20 @@ def game_loop(args):
             pygame.display.flip()
 
     finally:
+        if dataLidar is not None:
+            dataLidar.destroy()
+        data_thread.pause()
+        client.get_world().apply_settings(original_settings)
         if world is not None:
             world.destroy()
 
         pygame.quit()
 
 # ==============================================================================
-# -- thread for object detection() ---------------------------------------------
+# -- thread for lidar based object detection() ---------------------------------
 # ==============================================================================
 
-class ObjectDetection(threading.Thread):
+class LidarObjectDetection(threading.Thread):
     def __init__(self, queue, args=(), kwargs=None):
         threading.Thread.__init__(self, args=(), kwargs=None)
         self.opt, self.model = object_detection.main()
@@ -811,6 +816,7 @@ class ObjectDetection(threading.Thread):
                 data = np.copy(np.frombuffer(self.data.raw_data, dtype=np.dtype('f4')))
                 data = np.reshape(data, (int(data.shape[0] / 4), 4))
                 points = data[:, :-1]
+                self.data = None
                 lidar_array = [[point[0], -point[1], point[2], 1.0] for point in points]
                 lidar_array = np.array(lidar_array).astype(np.float32).reshape(-1, 4)
                 if points.any() and len(points) > 0:
@@ -840,11 +846,11 @@ def spawn_lidar(player, world):
     lidar_bp.set_attribute('range', '50')
     lidar_bp.set_attribute('rotation_frequency', '20')
     lidar_bp.set_attribute('upper_fov', '2')
-    lidar_bp.set_attribute('lower_fov', '-26.8')
-    lidar_bp.set_attribute('points_per_second', '320000')
-    lidar_bp.set_attribute('channels', '32')
+    lidar_bp.set_attribute('lower_fov', '-24.9')
+    lidar_bp.set_attribute('points_per_second', '1300000')
+    lidar_bp.set_attribute('channels', '64')
 
-    transform_sensor = carla.Transform(carla.Location(x=0, y=0, z=CAMERA_HEIGHT_POS))
+    transform_sensor = carla.Transform(carla.Location(x=0, y=0, z=2.3))
 
     my_lidar = world.world.spawn_actor(lidar_bp, transform_sensor, attach_to=player)
     return my_lidar

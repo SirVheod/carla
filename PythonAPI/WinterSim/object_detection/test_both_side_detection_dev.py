@@ -54,7 +54,7 @@ def detect_and_draw(opt, model, bev_maps, Tensor, is_front=True):
             # Draw rotated box
             bev_utils.drawRotatedBox(display_bev, x, y, w, l, yaw, cnf.colors[int(cls_pred)])
 
-    return display_bev, img_detections
+    return display_bev
 
 def detect(opt, model, lidar_array):
     try:
@@ -62,8 +62,8 @@ def detect(opt, model, lidar_array):
         data_loader = torch_data.DataLoader(dataset, 1, shuffle=False)
         Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
         img_paths, front_bevs, back_bevs = next(iter(data_loader))
-        front_bev_result, img_detections = detect_and_draw(opt, model, front_bevs, Tensor, True)
-        back_bev_result, _ = detect_and_draw(opt, model, back_bevs, Tensor, False)
+        front_bev_result = detect_and_draw(opt, model, front_bevs, Tensor, True)
+        back_bev_result = detect_and_draw(opt, model, back_bevs, Tensor, False)
         front_bev_result = cv2.rotate(front_bev_result, cv2.ROTATE_90_CLOCKWISE)
         back_bev_result = cv2.rotate(back_bev_result, cv2.ROTATE_90_COUNTERCLOCKWISE)
         vis = np.concatenate((front_bev_result, back_bev_result), axis=1)
@@ -77,8 +77,8 @@ def main():
     parser = argparse.ArgumentParser()
     #parser.add_argument("--model_def", type=str, default="object_detection/config/complex_yolov3.cfg", help="path to model definition file") #big model
     parser.add_argument("--model_def", type=str, default="object_detection/config/complex_tiny_yolov3.cfg", help="path to model definition file") #small model
-    #parser.add_argument("--weights_path", type=str, default="object_detection/checkpoints/yolov3_ckpt_epoch-268_MAP-0.60.pth", help="path to weights file") #big weights
-    parser.add_argument("--weights_path", type=str, default="object_detection/checkpoints/tiny-yolov3_ckpt_epoch-354_MAP-0.54.pth", help="path to weights file") #small model weights
+    #parser.add_argument("--weights_path", type=str, default="object_detection/checkpoints/yolov3_ckpt_epoch-268_MAP-0.60.pth", help="path to weights file") #lidar big model weights
+    parser.add_argument("--weights_path", type=str, default="object_detection/checkpoints/lidar32-tiny-yolov3_ckpt_epoch-354_MAP-0.54.pth", help="path to weights file") #lidar small model weights
     parser.add_argument("--class_path", type=str, default="data/classes.names", help="path to class label file")
     parser.add_argument("--conf_thres", type=float, default=0.8, help="object confidence threshold")
     parser.add_argument("--nms_thres", type=float, default=0.4, help="iou thresshold for non-maximum suppression")
