@@ -51,6 +51,8 @@ profiler.csv
 
 **/PythonAPI/WinterSim/cfg
 **/PythonAPI/WinterSim/darkflow
+**/PythonAPI/WinterSim/data_collector
+**/PythonAPI/WinterSim/object_detection
 **/PythonAPI/WinterSim/darkflow.egg-info
 **/PythonAPI/WinterSim/config
 **/PythonAPI/WinterSim/flow*

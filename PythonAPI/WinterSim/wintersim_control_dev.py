@@ -46,10 +46,7 @@ Use ARROWS or WASD keys for control.
     CTRL + +     : increments the start time of the replay by 1 second (+SHIFT = 10 seconds)
     CTRL + -     : decrements the start time of the replay by 1 second (+SHIFT = 10 seconds)
 
-
     F1           : toggle HUD
-    F8           : Open CV2 windows with object detection (Requires NVIDIA GPU + CUDA!)
-    F9           : Open CV2 Windows without object detection
     H/?          : toggle help
     ESC          : quit;
 """
@@ -68,6 +65,7 @@ import sys
 import re
 import threading
 import time
+from queue import Queue
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -95,9 +93,20 @@ import math
 import random
 import re
 import weakref
-from WinterSim import wintersim_hud
-from WinterSim import wintersim_sensors
-from wintersim_multiplewindows import MultipleWindows
+import wintersim_hud
+import wintersim_sensors
+
+from data_collector import collector_dev as collector
+from data_collector.bounding_box import create_kitti_datapoint
+from data_collector.constants import *
+from data_collector import image_converter
+from data_collector.dataexport import *
+
+from matplotlib import cm
+import open3d as o3d
+
+from object_detection import test_both_side_detection_dev as object_detection
+from wintersim_lidar_object_detection import LidarObjectDetection as  LidarObjectDetection
 
 try:
     import pygame
@@ -112,8 +121,6 @@ try:
     from pygame.locals import K_ESCAPE
     from pygame.locals import K_F1
     from pygame.locals import K_F2
-    from pygame.locals import K_F8
-    from pygame.locals import K_F9
     from pygame.locals import K_LEFT
     from pygame.locals import K_PERIOD
     from pygame.locals import K_RIGHT
@@ -139,6 +146,7 @@ try:
     from pygame.locals import K_w
     from pygame.locals import K_x
     from pygame.locals import K_z
+    from pygame.locals import K_o
     from pygame.locals import K_MINUS
     from pygame.locals import K_EQUALS
 except ImportError:
@@ -182,9 +190,6 @@ class World(object):
             print('  The server could not send the OpenDRIVE (.xodr) file:')
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
-        self.args = args
-        self.multiple_windows_enabled = args.windows
-        self.cv2_windows = None
         self.hud_wintersim = hud_wintersim
         self.ud_friction = True
         self.preset = None
@@ -198,7 +203,7 @@ class World(object):
         self._weather_presets = []
         self._weather_presets_all = find_weather_presets()
         for preset in self._weather_presets_all:
-            if preset[0].temperature <= 0: # get only presets what are for wintersim
+            if preset[0].temperature <= 0: #get only presets what are for wintersim
                 self._weather_presets.append(preset)
         self._weather_index = 0
         self._actor_filter = args.filter
@@ -208,6 +213,7 @@ class World(object):
         self.world.set_weather(preset[0])
         self.player.gud_frictiong_enabled = False
         self.recording_start = 0
+        self.record_data = False
         self.constant_velocity_enabled = False
         self.current_map_layer = 0
         self.world.on_tick(self.hud_wintersim.on_world_tick)
@@ -233,36 +239,22 @@ class World(object):
         cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
         # Get a vehicle according to arg parameter.
         blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
-
-        # Get the ego vehicle
-        if self.args.scenario:
-            while self.player is None:
-                print("Waiting for the ego vehicle...")
-                time.sleep(1)
-                possible_vehicles = self.world.get_actors().filter('vehicle.*')
-                for vehicle in possible_vehicles:
-                    if vehicle.attributes['role_name'] == "hero":
-                        print("Ego vehicle found")
-                        self.player = vehicle
-                        break
-
         # Spawn the player.
-        if not self.args.scenario:
-            if self.player is not None:
-                spawn_point = self.player.get_transform()
-                spawn_point.location.z += 2.0
-                spawn_point.rotation.roll = 0.0
-                spawn_point.rotation.pitch = 0.0
-                self.destroy()
-                self.player = self.world.try_spawn_actor(blueprint, spawn_point)
-            while self.player is None:
-                if not self.map.get_spawn_points():
-                    print('There are no spawn points available in your map/town.')
-                    print('Please add some Vehicle Spawn Point to your UE4 scene.')
-                    sys.exit(1)
-                spawn_points = self.map.get_spawn_points()
-                spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()#spawn_points[727]#random.choice(spawn_points) if spawn_points else carla.Transform()
-                self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+        if self.player is not None:
+            spawn_point = self.player.get_transform()
+            spawn_point.location.z += 2.0
+            spawn_point.rotation.roll = 0.0
+            spawn_point.rotation.pitch = 0.0
+            self.destroy()
+            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+        while self.player is None:
+            if not self.map.get_spawn_points():
+                print('There are no spawn points available in your map/town.')
+                print('Please add some Vehicle Spawn Point to your UE4 scene.')
+                sys.exit(1)
+            spawn_points = self.map.get_spawn_points()
+            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()#spawn_points[727]#random.choice(spawn_points) if spawn_points else carla.Transform()
+            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         # Set up the sensors.
         self.collision_sensor = wintersim_sensors.CollisionSensor(self.player, self.hud_wintersim)
         self.lane_invasion_sensor = wintersim_sensors.LaneInvasionSensor(self.player, self.hud_wintersim)
@@ -273,8 +265,6 @@ class World(object):
         self.camera_manager.set_sensor(cam_index, notify=False)
         actor_type = get_actor_display_name(self.player)
         self.hud_wintersim.notification(actor_type)
-        self.multiple_window_setup = False
-        self.detection = True
 
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
@@ -303,39 +293,26 @@ class World(object):
         if self.radar_sensor is None:
             self.radar_sensor = wintersim_sensors.RadarSensor(self.player)
         elif self.radar_sensor.sensor is not None:
+            #self.radar_sensor.data_thread.pause()
             self.radar_sensor.sensor.destroy()
             self.radar_sensor = None
 
     def tick(self, clock, hud_wintersim):
         self.hud_wintersim.tick(self, clock, hud_wintersim)
 
-
-    def render_object_detection(self):
-        if self.multiple_windows_enabled and self.multiple_window_setup:
-            # if multiplewindows enabled and setup done, enable MultipleWindows thread flag
-            self.cv2_windows.resume()
-
-        if self.multiple_window_setup == False and self.multiple_windows_enabled:
-            # setup wintersim_multiplewindows.py
-            self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
-            self.multiple_window_setup = True
-            self.cv2_windows.start()
-            self.cv2_windows.pause()
-
-    def block_object_detection(self):
-        if self.multiple_windows_enabled and self.cv2_windows is not None:
-            # if multiplewindows enabled, disable MultipleWindows thread flag
-            self.cv2_windows.pause()
-
     def render(self, display):
         self.camera_manager.render(display)
         self.hud_wintersim.render(display, self.world)
 
-    def toggle_cv2_windows(self):
-        self.multiple_windows_enabled = not self.multiple_windows_enabled
-        if self.multiple_windows_enabled == False and self.cv2_windows is not None:
-            self.cv2_windows.destroy()
-            self.multiple_window_setup = False
+    def handleUI(self, world, client, hud_wintersim, display, weather):
+        if hud_wintersim.is_hud:
+            for s in hud_wintersim.sliders:
+                if s.hit:
+                    s.move()
+                    weather.tick(hud_wintersim, world.preset[0])
+                    client.get_world().set_weather(weather.weather)
+            for s in hud_wintersim.sliders:
+                s.draw(display, s)
 
     def update_friction(self, iciness):
         actors = self.world.get_actors()
@@ -361,9 +338,6 @@ class World(object):
         self.camera_manager.index = None
 
     def destroy(self):
-        if self.cv2_windows is not None:
-            self.cv2_windows.destroy()
-
         if self.radar_sensor is not None:
             self.toggle_radar()
         sensors = [
@@ -379,7 +353,7 @@ class World(object):
         if self.player is not None:
             self.player.destroy()
 
-        
+
 # ==============================================================================
 # -- KeyboardControl -----------------------------------------------------------
 # ==============================================================================
@@ -398,7 +372,6 @@ class KeyboardControl(object):
             raise NotImplementedError("Actor type not supported")
         self._steer_cache = 0.0
         world.hud_wintersim.notification("Press 'H' or '?' for help.", seconds=4.0)
-
 
     def parse_events(self, client, world, clock, hud_wintersim):
         if isinstance(self._control, carla.VehicleControl):
@@ -429,14 +402,6 @@ class KeyboardControl(object):
                         #hud_wintersim.is_map = False
                     #if not hud_wintersim.is_map:
                         #hud_wintersim.is_map = True
-                elif event.key == K_F8:
-                    world.detection = True
-                    world.toggle_cv2_windows()
-
-                elif event.key == K_F9:
-                    world.detection = False
-                    world.toggle_cv2_windows()
-                   
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
                     world.next_map_layer(reverse=True)
                 elif event.key == K_v:
@@ -459,6 +424,8 @@ class KeyboardControl(object):
                     world.camera_manager.next_sensor()
                 elif event.key == K_n:
                     world.camera_manager.next_sensor()
+                elif event.key == K_o:
+                    world.record_data = not world.record_data
                 elif event.key == K_w and (pygame.key.get_mods() & KMOD_CTRL):
                     if world.constant_velocity_enabled:
                         world.player.disable_constant_velocity()
@@ -632,8 +599,8 @@ class CameraManager(object):
         bound_y = 0.5 + self._parent.bounding_box.extent.y
         Attachment = carla.AttachmentType
         self._camera_transforms = [
-            (carla.Transform(carla.Location(x=-0.1, y=-0.4, z=1.2)), Attachment.Rigid),
             (carla.Transform(carla.Location(x=-5.5, z=2.5), carla.Rotation(pitch=8.0)), Attachment.SpringArm),
+            (carla.Transform(carla.Location(x=-0.1, y=-0.4, z=1.2)), Attachment.Rigid),
             (carla.Transform(carla.Location(x=1.6, z=1.7)), Attachment.Rigid),
             (carla.Transform(carla.Location(x=5.5, y=1.5, z=1.5)), Attachment.SpringArm),
             (carla.Transform(carla.Location(x=-8.0, z=6.0), carla.Rotation(pitch=6.0)), Attachment.SpringArm),
@@ -695,8 +662,7 @@ class CameraManager(object):
                 self._camera_transforms[self.transform_index][0],
                 attach_to=self._parent,
                 attachment_type=self._camera_transforms[self.transform_index][1])
-            # We need to pass the lambda a weak reference to self to avoid
-            # circular reference.
+            # We need to pass the lambda a weak reference to self to avoid circular reference.
             weak_self = weakref.ref(self)
             self.sensor.listen(lambda image: CameraManager._parse_image(weak_self, image))
         if notify:
@@ -763,7 +729,7 @@ def game_loop(args):
 
     try:
         client = carla.Client(args.host, args.port)
-        client.set_timeout(2.0)
+        client.set_timeout(2.0)        
 
         display = pygame.display.set_mode(
             (args.width, args.height),
@@ -774,37 +740,85 @@ def game_loop(args):
         hud_wintersim = wintersim_hud.HUD_WINTERSIM(args.width, args.height, display)
         hud_wintersim.make_sliders()
         world = World(client.get_world(), hud_wintersim, args)
-        world.preset = world._weather_presets[0]                            # start weather preset
-        hud_wintersim.update_sliders(world.preset[0])                       # update sliders to positions according to preset
+        world.preset = world._weather_presets[0] #start weather preset
+        hud_wintersim.update_sliders(world.preset[0]) #update sliders to positions according to preset
         controller = KeyboardControl(world, args.autopilot)
-        weather = wintersim_hud.Weather(client.get_world().get_weather())   # weather object to update carla weather with sliders
+        weather = wintersim_hud.Weather(client.get_world().get_weather()) #weather object to update carla weather with sliders
         clock = pygame.time.Clock()
-        count = 0
+
+        q = Queue()
+        data_thread = LidarObjectDetection(q, args=(False))
+        data_thread.start()
+        isResumed = False
+        dataLidar = None
+
+        original_settings = client.get_world().get_settings()
+        settings = client.get_world().get_settings()
+        settings.fixed_delta_seconds = 0.05
+        settings.synchronous_mode = True
+
         while True:
-            clock.tick_busy_loop(60)
-            world.render_object_detection()                                 # start detecting and rendering cv2 windows as early in the frame, uses another thread
-            if controller.parse_events(client, world, clock, hud_wintersim):
+            if isResumed:
+                clock.tick_busy_loop(20)                                    # This is so server and client sync to 20fps when doing object detection with lidar
+            else:
+                clock.tick_busy_loop(60)                                    # If no object detection with lidar client can go to max 60fps
+
+            if controller.parse_events(client, world, clock, hud_wintersim): 
                 return
+
             world.tick(clock, hud_wintersim)
             world.render(display)
-            if hud_wintersim.is_hud:
-                for s in hud_wintersim.sliders: 
-                    if s.hit:                                               # if slider is being touched
-                        s.move()                                            # move slider
-                        weather.tick(hud_wintersim, world.preset[0])        # update weather object
-                        client.get_world().set_weather(weather.weather)     # send weather
-                for s in hud_wintersim.sliders:
-                    s.draw(display, s)
+            world.handleUI(world, client, hud_wintersim, display, weather)
 
-            #world.block_object_detection()                                  # block object detection till next frame (pauses thread)
+            # --- Handle Lidar ----
+            if world.record_data and not isResumed:                         # Resumes to lidar object detection
+                if dataLidar is None:                                       # If theres no lidar lets make a new one
+                    dataLidar = spawn_lidar(world.player, world)            # spawn lidar
+                    dataLidar.listen(lambda data: data_thread.update(data)) # updates data to object detection thread
+                isResumed = True
+                client.get_world().apply_settings(settings)                 # apply custom settings
+                data_thread.resume()                                        # resume object detection thread
+            if not world.record_data and isResumed:
+                if dataLidar is not None:                                   # If there is lidar we will destroy it
+                    dataLidar.destroy()
+                    dataLidar = None
+                isResumed = False
+                client.get_world().apply_settings(original_settings)        # set default settings
+                data_thread.pause()                                         # pause object detection thread
+            if isResumed:
+                client.get_world().tick()
+            # --- Handle Lidar ----
+
             pygame.display.flip()
 
     finally:
+        if dataLidar is not None:
+            dataLidar.destroy()                                 # destroy lidar 
+        data_thread.pause()                                     # pause thread
+        client.get_world().apply_settings(original_settings)    # apply default settings
         if world is not None:
             world.destroy()
 
         pygame.quit()
 
+# # ==============================================================================
+# # -- spawn lidar for object detection() ----------------------------------------
+# # ==============================================================================
+
+def spawn_lidar(player, world): #this is the lidar we are using for object detection
+    blueprint_library = world.world.get_blueprint_library()
+    lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
+    lidar_bp.set_attribute('range', '50')
+    lidar_bp.set_attribute('rotation_frequency', '20')
+    lidar_bp.set_attribute('upper_fov', '2')
+    lidar_bp.set_attribute('lower_fov', '-26.8')
+    lidar_bp.set_attribute('points_per_second', '320000')
+    lidar_bp.set_attribute('channels', '32')
+
+    transform_sensor = carla.Transform(carla.Location(x=0, y=0, z=2.3))
+
+    my_lidar = world.world.spawn_actor(lidar_bp, transform_sensor, attach_to=player)
+    return my_lidar
 
 # ==============================================================================
 # -- main() --------------------------------------------------------------------
@@ -853,37 +867,16 @@ def main():
         default=2.2,
         type=float,
         help='Gamma correction of the camera (default: 2.2)')
-    argparser.add_argument(
-        '--windows',
-        default=False,
-        type=bool,
-        help='multiplewindows')
-    argparser.add_argument(
-        '--record',
-        default=False,
-        type=bool,
-        help='record cv2 windows')
-    argparser.add_argument(
-        '--scenario',
-        default=False,
-        type=bool,
-        help='is scenario')
     args = argparser.parse_args()
-
     args.width, args.height = [int(x) for x in args.res.split('x')]
-
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(format='%(levelname)s: %(message)s', level=log_level)
-
     logging.info('listening to server %s:%s', args.host, args.port)
-
     print(__doc__)
-
     try:
         game_loop(args)
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
-
 
 if __name__ == '__main__':
     main()

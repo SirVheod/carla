@@ -54,8 +54,8 @@ class ImageDetection():
             cv2.putText(img, label, (x-10, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
         # draw object detection fps to cv2 top left corner
-        fps = int(1.0 / (time.time() - start_time))
-        fps_text = str(fps) + " FPS"
-        cv2.putText(img, fps_text, (15, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        # fps = int(1.0 / (time.time() - start_time))
+        # fps_text = str(fps) + " FPS"
+        # cv2.putText(img, fps_text, (15, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
         return img
