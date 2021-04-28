@@ -148,7 +148,7 @@ class MultipleWindows(threading.Thread):
     def render_all_windows(self):
         """ Render all separate sensors (cv2 windows)"""
         self.render_back_rgb_camera(self.back_rgb_camera_display)
-        self.render_front_depth(self.front_depth_display)
+        #self.render_front_depth(self.front_depth_display)
         self.render_front_rgb_camera(self.front_rgb_camera_display)
         
     def destroy(self):
@@ -157,9 +157,16 @@ class MultipleWindows(threading.Thread):
             save.save_images_to_video()
             self.record_images = False
         self.stop()
-        self.front_rgb_camera.destroy()
-        self.back_rgb_camera.destroy()
-        self.depth_camera.destroy()
+
+        if self.front_rgb_camera is not None:
+            self.front_rgb_camera.destroy()
+
+        if self.back_rgb_camera is not None:
+            self.back_rgb_camera.destroy()
+
+        if self.front_depth_camera is not None:
+            self.front_depth_camera.destroy()
+
         cv2.destroyAllWindows()
 
     def __init__(self, car, camera, world, record, detection):
@@ -199,7 +206,7 @@ class MultipleWindows(threading.Thread):
 
         self.setup_back_rgb_camera()
         self.setup_front_rgb_camera()
-        self.setup_front_depth_camera()
+        #self.setup_front_depth_camera()
 
     def run(self):
         while self.__running.isSet():

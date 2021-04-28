@@ -1,6 +1,7 @@
 import wintersim_sensors
 import wintersim_hud
 import carla
+import math
 
 try:
     import pygame
@@ -15,6 +16,8 @@ try:
     from pygame.locals import K_ESCAPE
     from pygame.locals import K_F1
     from pygame.locals import K_F2
+    from pygame.locals import K_F8
+    from pygame.locals import K_F9
     from pygame.locals import K_LEFT
     from pygame.locals import K_PERIOD
     from pygame.locals import K_RIGHT
@@ -94,6 +97,14 @@ class KeyboardControl(object):
                         #hud_wintersim.is_map = False
                     #if not hud_wintersim.is_map:
                         #hud_wintersim.is_map = True
+                elif event.key == K_F8:
+                    world.detection = True
+                    world.toggle_cv2_windows()
+
+                elif event.key == K_F9:
+                    world.detection = False
+                    world.toggle_cv2_windows()
+                
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
                     world.next_map_layer(reverse=True)
                 elif event.key == K_v:
