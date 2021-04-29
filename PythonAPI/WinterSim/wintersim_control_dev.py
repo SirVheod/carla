@@ -47,17 +47,18 @@ Use ARROWS or WASD keys for control.
     CTRL + -     : decrements the start time of the replay by 1 second (+SHIFT = 10 seconds)
 
     F1           : toggle HUD
+    F8           : toggle camera sensors with object detection
+    F9           : toggle camera sensors without object detection
+    F10          : toggle all sensors with object detection
     H/?          : toggle help
     ESC          : quit;
 """
 
+# ==============================================================================
+# -- imports -------------------------------------------------------------------
+# ==============================================================================
+
 from __future__ import print_function
-
-
-# ==============================================================================
-# -- find carla module ---------------------------------------------------------
-# ==============================================================================
-
 
 import glob
 import os
@@ -75,16 +76,8 @@ try:
 except IndexError:
     pass
 
-
-# ==============================================================================
-# -- imports -------------------------------------------------------------------
-# ==============================================================================
-
-
 import carla
-
 from carla import ColorConverter as cc
-
 import argparse
 import collections
 import datetime
@@ -133,11 +126,9 @@ def find_weather_presets():
     presets = [x for x in dir(carla.WeatherParameters) if re.match('[A-Z].+', x)]
     return [(getattr(carla.WeatherParameters, x), name(x)) for x in presets]
 
-
 def get_actor_display_name(actor, truncate=250):
     name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
     return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
-
 
 # ==============================================================================
 # -- World ---------------------------------------------------------------------
@@ -280,7 +271,7 @@ class World(object):
             self.cv2_windows.start()
             self.cv2_windows.pause()
 
-    def block_object_detection(self):
+    def block_camera_object_detection(self):
         if self.multiple_windows_enabled and self.cv2_windows is not None:
             # if multiplewindows enabled, disable MultipleWindows thread flag
             self.cv2_windows.pause()
@@ -295,7 +286,7 @@ class World(object):
         self.camera_manager.render(display)
         self.hud_wintersim.render(display, self.world)
 
-    def handleUI(self, world, client, hud_wintersim, display, weather):
+    def render_UI_sliders(self, world, client, hud_wintersim, display, weather):
         if hud_wintersim.is_hud:
             for s in hud_wintersim.sliders:
                 if s.hit:
@@ -316,11 +307,9 @@ class World(object):
                 front_right_wheel = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=70.0, radius=20.0)
                 rear_left_wheel   = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=0.0,  radius=20.0)
                 rear_right_wheel  = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=0.0,  radius=20.0)
-
                 wheels = [front_left_wheel, front_right_wheel, rear_left_wheel, rear_right_wheel]
                 physics_control = vehicle.get_physics_control()
                 physics_control.wheels = wheels
-
                 vehicle.apply_physics_control(physics_control)
 
     def destroy_sensors(self):
@@ -366,10 +355,10 @@ def game_loop(args):
         hud_wintersim = wintersim_hud.HUD_WINTERSIM(args.width, args.height, display)
         hud_wintersim.make_sliders()
         world = World(client.get_world(), hud_wintersim, args)
-        world.preset = world._weather_presets[0] #start weather preset
-        hud_wintersim.update_sliders(world.preset[0]) #update sliders to positions according to preset
+        world.preset = world._weather_presets[0]                            # start weather preset
+        hud_wintersim.update_sliders(world.preset[0])                       # update sliders to positions according to preset
         controller = KeyboardControl(world, args.autopilot)
-        weather = wintersim_hud.Weather(client.get_world().get_weather()) #weather object to update carla weather with sliders
+        weather = wintersim_hud.Weather(client.get_world().get_weather())   # weather object to update carla weather with sliders
         clock = pygame.time.Clock()
 
         q = Queue()
@@ -390,17 +379,17 @@ def game_loop(args):
                 clock.tick_busy_loop(60)                                    # If no object detection with lidar client can go to max 60fps
 
             world.render_object_detection()                                 # start detecting and rendering cv2 windows as early in the frame, uses another thread
-            if controller.parse_events(client, world, clock, hud_wintersim): 
+
+            if controller.parse_events(client, world, clock, hud_wintersim):
                 return
 
             world.tick(clock, hud_wintersim)
-            world.render(display)
-            world.handleUI(world, client, hud_wintersim, display, weather)
+           
 
             # --- Handle Lidar ----
             if world.record_data and not isResumed:                         # Resumes to lidar object detection
                 if dataLidar is None:                                       # If theres no lidar lets make a new one
-                    dataLidar = spawn_lidar(world.player, world)            # spawn lidar
+                    dataLidar = data_thread.spawn_lidar(world.player, world)# spawn lidar
                     dataLidar.listen(lambda data: data_thread.update(data)) # updates data to object detection thread
                 isResumed = True
                 client.get_world().apply_settings(settings)                 # apply custom settings
@@ -416,6 +405,9 @@ def game_loop(args):
                 client.get_world().tick()
             # --- Handle Lidar ----
 
+            world.render(display)
+            world.render_UI_sliders(world, client, hud_wintersim, display, weather)
+
             pygame.display.flip()
 
     finally:
@@ -427,25 +419,6 @@ def game_loop(args):
             world.destroy()
 
         pygame.quit()
-
-# # ==============================================================================
-# # -- spawn lidar for object detection() ----------------------------------------
-# # ==============================================================================
-
-def spawn_lidar(player, world): #this is the lidar we are using for object detection
-    blueprint_library = world.world.get_blueprint_library()
-    lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
-    lidar_bp.set_attribute('range', '50')
-    lidar_bp.set_attribute('rotation_frequency', '20')
-    lidar_bp.set_attribute('upper_fov', '2')
-    lidar_bp.set_attribute('lower_fov', '-26.8')
-    lidar_bp.set_attribute('points_per_second', '320000')
-    lidar_bp.set_attribute('channels', '32')
-
-    transform_sensor = carla.Transform(carla.Location(x=0, y=0, z=2.3))
-
-    my_lidar = world.world.spawn_actor(lidar_bp, transform_sensor, attach_to=player)
-    return my_lidar
 
 # ==============================================================================
 # -- main() --------------------------------------------------------------------

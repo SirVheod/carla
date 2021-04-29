@@ -39,32 +39,30 @@ class LidarObjectDetection(threading.Thread):
 
     def pause(self):
         with self.state:
-            self.paused = True  # Block self.
+            self.paused = True      # Block self.
 
     def resume(self):
         with self.state:
             self.paused = False
-            self.state.notify()  # Unblock self if waiting.
+            self.state.notify()     # Unblock self if waiting.
 
     def update(self, pointcloud):
         with self.state:
-            self.data = pointcloud #update data for object detection
+            self.data = pointcloud  # update data for object detection
 
 # ==============================================================================
 # -- spawn lidar for object detection() ----------------------------------------
 # ==============================================================================
 
-def spawn_lidar(player, world): #this is the lidar we are using for object detection
-    blueprint_library = world.world.get_blueprint_library()
-    lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
-    lidar_bp.set_attribute('range', '50')
-    lidar_bp.set_attribute('rotation_frequency', '20')
-    lidar_bp.set_attribute('upper_fov', '2')
-    lidar_bp.set_attribute('lower_fov', '-26.8')
-    lidar_bp.set_attribute('points_per_second', '320000')
-    lidar_bp.set_attribute('channels', '32')
-
-    transform_sensor = carla.Transform(carla.Location(x=0, y=0, z=2.3))
-
-    my_lidar = world.world.spawn_actor(lidar_bp, transform_sensor, attach_to=player)
-    return my_lidar
+    def spawn_lidar(self, player, world): # this is the lidar we are using for object detection
+        blueprint_library = world.world.get_blueprint_library()
+        lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
+        lidar_bp.set_attribute('range', '50')
+        lidar_bp.set_attribute('rotation_frequency', '20')
+        lidar_bp.set_attribute('upper_fov', '2')
+        lidar_bp.set_attribute('lower_fov', '-26.8')
+        lidar_bp.set_attribute('points_per_second', '320000')
+        lidar_bp.set_attribute('channels', '32')
+        transform_sensor = carla.Transform(carla.Location(x=0, y=0, z=2.3))
+        my_lidar = world.world.spawn_actor(lidar_bp, transform_sensor, attach_to=player)
+        return my_lidar
