@@ -10,7 +10,7 @@
 # documented example, please take a look at tutorial.py.
 
 """
-Welcome to CARLA manual control.
+Welcome to CARLA WinterSim control.
 
 Use ARROWS or WASD keys for control.
 
@@ -144,6 +144,11 @@ class World(object):
             print('  The server could not send the OpenDRIVE (.xodr) file:')
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
+        self.original_settings = None
+        self.settings = None
+        self.data_thread = None
+        self.isResumed = False
+        self.dataLidar = None
         self.args = args
         self.multiple_windows_enabled = args.windows
         self.cv2_windows = None
@@ -260,6 +265,7 @@ class World(object):
         self.hud_wintersim.tick(self, clock, hud_wintersim)
 
     def render_object_detection(self):
+        ''' Render camera object detection if enabled, uses another thread'''
         if self.multiple_windows_enabled and self.multiple_window_setup:
             # if multiplewindows enabled and setup done, enable MultipleWindows thread flag
             self.cv2_windows.resume()
@@ -270,6 +276,25 @@ class World(object):
             self.multiple_window_setup = True
             self.cv2_windows.start()
             self.cv2_windows.pause()
+
+    def handle_lidar(self, world, client):
+        ''' handle lidar render/detection'''
+        if world.record_data and not world.isResumed:                               # Resumes to lidar object detection
+            if world.dataLidar is None:                                             # If theres no lidar lets make a new one
+                world.dataLidar = world.data_thread.spawn_lidar(world.player, world)# spawn lidar
+                world.dataLidar.listen(lambda data: world.data_thread.update(data)) # updates data to object detection thread
+            world.isResumed = True
+            client.get_world().apply_settings(world.settings)                       # apply custom settings
+            world.data_thread.resume()                                              # resume object detection thread
+        if not world.record_data and world.isResumed:
+            if world.dataLidar is not None:                                         # If there is lidar we will destroy it
+                world.dataLidar.destroy()
+                world.dataLidar = None
+            world.isResumed = False
+            client.get_world().apply_settings(world.original_settings)              # set default settings
+            world.data_thread.pause()                                               # pause object detection thread
+        if world.isResumed:
+            client.get_world().tick()
 
     def block_camera_object_detection(self):
         if self.multiple_windows_enabled and self.cv2_windows is not None:
@@ -362,59 +387,37 @@ def game_loop(args):
         clock = pygame.time.Clock()
 
         q = Queue()
-        data_thread = LidarObjectDetection(q, args=(False))
-        data_thread.start()
-        isResumed = False
-        dataLidar = None
+        world.data_thread = LidarObjectDetection(q, args=(False))
+        world.data_thread.start()
+        world.isResumed = False
+        world.dataLidar = None
 
-        original_settings = client.get_world().get_settings()
-        settings = client.get_world().get_settings()
-        settings.fixed_delta_seconds = 0.05
-        settings.synchronous_mode = True
+        world.original_settings = client.get_world().get_settings()
+        world.settings = client.get_world().get_settings()
+        world.settings.fixed_delta_seconds = 0.05
+        world.settings.synchronous_mode = True
 
         while True:
-            if isResumed:
+            if world.isResumed:
                 clock.tick_busy_loop(20)                                    # This is so server and client sync to 20fps when doing object detection with lidar
             else:
                 clock.tick_busy_loop(60)                                    # If no object detection with lidar client can go to max 60fps
-
-            world.render_object_detection()                                 # start detecting and rendering cv2 windows as early in the frame, uses another thread
-
+            world.handle_lidar(world, client)
+            world.render_object_detection()                                
             if controller.parse_events(client, world, clock, hud_wintersim):
                 return
-
             world.tick(clock, hud_wintersim)
-           
-
-            # --- Handle Lidar ----
-            if world.record_data and not isResumed:                         # Resumes to lidar object detection
-                if dataLidar is None:                                       # If theres no lidar lets make a new one
-                    dataLidar = data_thread.spawn_lidar(world.player, world)# spawn lidar
-                    dataLidar.listen(lambda data: data_thread.update(data)) # updates data to object detection thread
-                isResumed = True
-                client.get_world().apply_settings(settings)                 # apply custom settings
-                data_thread.resume()                                        # resume object detection thread
-            if not world.record_data and isResumed:
-                if dataLidar is not None:                                   # If there is lidar we will destroy it
-                    dataLidar.destroy()
-                    dataLidar = None
-                isResumed = False
-                client.get_world().apply_settings(original_settings)        # set default settings
-                data_thread.pause()                                         # pause object detection thread
-            if isResumed:
-                client.get_world().tick()
-            # --- Handle Lidar ----
-
             world.render(display)
             world.render_UI_sliders(world, client, hud_wintersim, display, weather)
-
             pygame.display.flip()
 
     finally:
-        if dataLidar is not None:
-            dataLidar.destroy()                                 # destroy lidar 
-        data_thread.pause()                                     # pause thread
-        client.get_world().apply_settings(original_settings)    # apply default settings
+        if world.dataLidar is not None:
+            world.dataLidar.destroy()                                       # destroy lidar 
+        if world.data_thread is not None:    
+            world.data_thread.pause()                                       # pause thread
+        if world.original_settings is not None:
+            client.get_world().apply_settings(world.original_settings)      # apply default settings
         if world is not None:
             world.destroy()
 
