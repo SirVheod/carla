@@ -9,16 +9,18 @@ from data_collector.dataexport import *
 from matplotlib import cm
 import open3d as o3d
 from object_detection import test_both_side_detection_dev as object_detection
+#import cv2
 
 class LidarObjectDetection(threading.Thread):
     def __init__(self, queue, args=(), kwargs=None):
         threading.Thread.__init__(self, args=(), kwargs=None)
-        self.opt, self.model = object_detection.main()
+        self.opt, self.model, self.tensor = object_detection.main()
         self.queue = queue
         self.daemon = True
         self.paused = args
         self.state = threading.Condition()
         self.data = None
+        self.lidar = None
 
     def run(self):
         self.pause()
@@ -34,7 +36,7 @@ class LidarObjectDetection(threading.Thread):
                 lidar_array = [[point[0], -point[1], point[2], 1.0] for point in points]
                 lidar_array = np.array(lidar_array).astype(np.float32).reshape(-1, 4)
                 if points.any() and len(points) > 0:
-                    object_detection.detect(self.opt, self.model, lidar_array) #do the detection magick
+                    object_detection.detect(self.opt, self.model, lidar_array, self.tensor) # do the detection magick
 
 
     def pause(self):
@@ -50,9 +52,14 @@ class LidarObjectDetection(threading.Thread):
         with self.state:
             self.data = pointcloud  # update data for object detection
 
-# ==============================================================================
-# -- spawn lidar for object detection() ----------------------------------------
-# ==============================================================================
+    def make_lidar(self, player, world):
+        self.lidar = self.spawn_lidar(player, world) # spawn lidar
+        self.lidar.listen(lambda data: self.update(data))  # updates data to object detection thread
+
+    def destroy_lidar(self):
+        self.lidar.destroy()
+        self.lidar = None
+        object_detection.destroy_window()
 
     def spawn_lidar(self, player, world): # this is the lidar we are using for object detection
         blueprint_library = world.world.get_blueprint_library()

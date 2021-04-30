@@ -8,6 +8,7 @@ import threading
 import time
 import numpy as np
 from queue import Queue
+import torch
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -117,8 +118,7 @@ class GnssSensor(object):
         world = self._parent.get_world()
         bp = world.get_blueprint_library().find('sensor.other.gnss')
         self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(x=1.0, z=2.8)), attach_to=self._parent)
-        # We need to pass the lambda a weak reference to self to avoid circular
-        # reference.
+        # We need to pass the lambda a weak reference to self to avoid circular reference.
         weak_self = weakref.ref(self)
         self.sensor.listen(lambda event: GnssSensor._on_gnss_event(weak_self, event))
 
@@ -146,8 +146,7 @@ class IMUSensor(object):
         bp = world.get_blueprint_library().find('sensor.other.imu')
         self.sensor = world.spawn_actor(
             bp, carla.Transform(), attach_to=self._parent)
-        # We need to pass the lambda a weak reference to self to avoid circular
-        # reference.
+        # We need to pass the lambda a weak reference to self to avoid circular reference.
         weak_self = weakref.ref(self)
         self.sensor.listen(
             lambda sensor_data: IMUSensor._IMU_callback(weak_self, sensor_data))
@@ -233,13 +232,13 @@ class IMUSensor(object):
 
 class RadarSensor(object):
     def __init__(self, parent_actor):
-        #self.opt, self.model = object_detection.main() #osa testi aluetta
-        q = Queue() #osa testi aluetta
-        self.data_thread = RadarObjectDetection(q, args=(False)) #osa testi aluetta
-        self.data_thread.start() #osa testi aluetta
+        #self.opt, self.model = object_detection.main() 
+        q = Queue()
+        self.data_thread = RadarObjectDetection(q, args=(False))
+        self.data_thread.start()
         self.data_thread.resume()
         self.sensor = None
-        self.points = [] #osa testi aluetta
+        self.points = []
         self._parent = parent_actor
         self.velocity_range = 7.5 # m/s
         world = self._parent.get_world()
@@ -248,10 +247,10 @@ class RadarSensor(object):
         bp.set_attribute('horizontal_fov', str(50))
         #bp.set_attribute('points_per_second', str(5000))
         self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(x=2.8, z=1.0)),attach_to=self._parent)
+
         # We need a weak reference to self to avoid circular reference.
         weak_self = weakref.ref(self)
-        self.sensor.listen(
-            lambda radar_data: RadarSensor._Radar_callback(weak_self, radar_data, parent_actor))
+        self.sensor.listen(lambda radar_data: RadarSensor._Radar_callback(weak_self, radar_data, parent_actor))
 
     @staticmethod
     def _Radar_callback(weak_self, radar_data, parent_actor):
@@ -267,17 +266,16 @@ class RadarSensor(object):
             azi = math.degrees(detect.azimuth)
             alt = math.degrees(detect.altitude)
             
-            theta = math.radians(90 - alt) #here we do some magick by making points from the data given
+            theta = math.radians(90 - alt) # here we do some magick by making points from the data given
             phi = detect.azimuth
             radius = detect.depth
             x = radius * math.sin(theta) * math.cos(phi)
             y = radius * math.sin(theta) * math.sin(phi)
             z = radius * math.cos(theta)
             point = [x, -y, z, 1.0] 
-            self.points.append(point) #add newly made point to points array
+            self.points.append(point) # add newly made point to points array
             
-            # The 0.25 adjusts a bit the distance so the dots can
-            # be properly seen
+            # The 0.25 adjusts a bit the distance so the dots can be properly seen
             fw_vec = carla.Vector3D(x=detect.depth - 0.25)
             carla.Transform(
                 carla.Location(),
@@ -300,10 +298,11 @@ class RadarSensor(object):
                 persistent_lines=False,
                 color=carla.Color(r, g, b))
         
-        if len(self.points) > 250: #if datapoint array contains atleast 250 points we do object detection 
-            self.points = np.array(self.points) #here we make numpy array
-            self.data_thread.update(self.points) #update detection thread data 
-            self.points = [] #clear points array
+        if len(self.points) > 250:                  # if datapoint array contains atleast 250 points we do object detection
+            self.points = np.array(self.points)     # here we make numpy array
+            self.data_thread.update(self.points)    # update detection thread data 
+            self.points = []                        # clear points array
+           
 
 # ==============================================================================
 # -- thread for radar based object detection() ---------------------------------
@@ -318,14 +317,15 @@ class RadarObjectDetection(threading.Thread): # this is pretty much same as lida
         self.paused = args
         self.state = threading.Condition()
         self.data = None
+        self.tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
     def run(self):
         while True:
             with self.state:
                 if self.paused:
-                    self.state.wait()                                       # Block execution until notified.
-            if self.data is not None:                                       # if there is data we run this
-                object_detection.detect(self.opt, self.model, self.data)    # detection magick
+                    self.state.wait()                                                       # Block execution until notified.
+            if self.data is not None:                                                       # if there is data we run this
+                object_detection.detect(self.opt, self.model, self.data, self.tensor)       # detection magick
 
 
     def pause(self):

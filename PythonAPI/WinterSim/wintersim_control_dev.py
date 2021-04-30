@@ -98,8 +98,8 @@ from data_collector.dataexport import *
 from matplotlib import cm
 import open3d as o3d
 
+from wintersim_lidar_object_detection import LidarObjectDetection as LidarObjectDetection
 from object_detection import test_both_side_detection_dev as object_detection
-from wintersim_lidar_object_detection import LidarObjectDetection as  LidarObjectDetection
 from wintersim_keyboard_control import KeyboardControl
 from wintersim_multiplewindows import MultipleWindows
 from wintersim_camera_manager import CameraManager
@@ -144,10 +144,11 @@ class World(object):
             print('  The server could not send the OpenDRIVE (.xodr) file:')
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
+        self.wintersim_autopilot = False
         self.original_settings = None
         self.settings = None
         self.data_thread = None
-        self.isResumed = False
+        self.render_lidar_detection = False
         self.dataLidar = None
         self.args = args
         self.multiple_windows_enabled = args.windows
@@ -277,24 +278,21 @@ class World(object):
             self.cv2_windows.start()
             self.cv2_windows.pause()
 
-    def handle_lidar(self, world, client):
-        ''' handle lidar render/detection'''
-        if world.record_data and not world.isResumed:                               # Resumes to lidar object detection
-            if world.dataLidar is None:                                             # If theres no lidar lets make a new one
-                world.dataLidar = world.data_thread.spawn_lidar(world.player, world)# spawn lidar
-                world.dataLidar.listen(lambda data: world.data_thread.update(data)) # updates data to object detection thread
-            world.isResumed = True
+    def toggle_lidar(self, world, client):
+        ''' Toggle lidar render/detection'''
+        if world.record_data and not world.render_lidar_detection:                               # Resumes to lidar object detection      
+            world.data_thread.make_lidar(world.player, world)                       # If theres no lidar lets make a new one
+            world.render_lidar_detection = True
             client.get_world().apply_settings(world.settings)                       # apply custom settings
             world.data_thread.resume()                                              # resume object detection thread
-        if not world.record_data and world.isResumed:
-            if world.dataLidar is not None:                                         # If there is lidar we will destroy it
-                world.dataLidar.destroy()
-                world.dataLidar = None
-            world.isResumed = False
+        if not world.record_data and world.render_lidar_detection:
+            world.render_lidar_detection = False
             client.get_world().apply_settings(world.original_settings)              # set default settings
             world.data_thread.pause()                                               # pause object detection thread
-        if world.isResumed:
-            client.get_world().tick()
+            world.data_thread.destroy_lidar()
+
+    def toggle_autonomous_autopilot(self):
+            self.wintersim_autopilot = not self.wintersim_autopilot
 
     def block_camera_object_detection(self):
         if self.multiple_windows_enabled and self.cv2_windows is not None:
@@ -389,20 +387,20 @@ def game_loop(args):
         q = Queue()
         world.data_thread = LidarObjectDetection(q, args=(False))
         world.data_thread.start()
-        world.isResumed = False
+        world.render_lidar_detection = False
         world.dataLidar = None
 
         world.original_settings = client.get_world().get_settings()
         world.settings = client.get_world().get_settings()
         world.settings.fixed_delta_seconds = 0.05
         world.settings.synchronous_mode = True
-
+        
         while True:
-            if world.isResumed:
+
+            if world.render_lidar_detection:
                 clock.tick_busy_loop(20)                                    # This is so server and client sync to 20fps when doing object detection with lidar
             else:
                 clock.tick_busy_loop(60)                                    # If no object detection with lidar client can go to max 60fps
-            world.handle_lidar(world, client)
             world.render_object_detection()                                
             if controller.parse_events(client, world, clock, hud_wintersim):
                 return
@@ -411,13 +409,23 @@ def game_loop(args):
             world.render_UI_sliders(world, client, hud_wintersim, display, weather)
             pygame.display.flip()
 
+            if world.render_lidar_detection:
+                client.get_world().tick()
+
     finally:
         if world.dataLidar is not None:
-            world.dataLidar.destroy()                                       # destroy lidar 
+            world.dataLidar.destroy()   
+
         if world.data_thread is not None:    
-            world.data_thread.pause()                                       # pause thread
+            world.data_thread.pause()                                       
+            world.data_thread.destroy()
+
         if world.original_settings is not None:
-            client.get_world().apply_settings(world.original_settings)      # apply default settings
+            client.get_world().apply_settings(world.original_settings)
+
+        if world.cv2_windows is not None:
+            world.cv2_windows.destroy()
+
         if world is not None:
             world.destroy()
 

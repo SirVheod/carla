@@ -16,6 +16,7 @@ try:
     from pygame.locals import K_ESCAPE
     from pygame.locals import K_F1
     from pygame.locals import K_F2
+    from pygame.locals import K_F4
     from pygame.locals import K_F8
     from pygame.locals import K_F9
     from pygame.locals import K_F10
@@ -98,6 +99,10 @@ class KeyboardControl(object):
                         #hud_wintersim.is_map = False
                     #if not hud_wintersim.is_map:
                         #hud_wintersim.is_map = True
+
+                elif event.key == K_F4:
+                    world.toggle_autonomous_autopilot()
+                    
                 elif event.key == K_F8:
                     world.detection = True
                     world.toggle_cv2_windows()
@@ -111,6 +116,7 @@ class KeyboardControl(object):
                     world.toggle_cv2_windows()
                     world.toggle_radar()
                     world.record_data = not world.record_data
+                    world.toggle_lidar(world, client)
                 
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
                     world.next_map_layer(reverse=True)
@@ -136,6 +142,7 @@ class KeyboardControl(object):
                     world.camera_manager.next_sensor()
                 elif event.key == K_o:
                     world.record_data = not world.record_data
+                    world.toggle_lidar(world, client)
                 elif event.key == K_w and (pygame.key.get_mods() & KMOD_CTRL):
                     if world.constant_velocity_enabled:
                         world.player.disable_constant_velocity()

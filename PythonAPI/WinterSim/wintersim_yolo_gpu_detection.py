@@ -16,7 +16,7 @@ class ImageDetection():
         global options, tfnet, color
 
         # load cfg and weight file, download these files and put them under config/ folder.
-        options = {"model": "config/yolo.cfg", "load": "config/yolo.weights", "threshold": 0.5, "gpu": 0.6}                       # slowest but best accuracy, change load.py line 121 to 16
+        options = {"model": "config/yolo.cfg", "load": "config/yolo.weights", "threshold": 0.5, "gpu": 0.2}                       # slowest but best accuracy, change load.py line 121 to 16
         #options = {"model": "config/yolov2.cfg", "load": "config/yolov2.weights", "threshold": 0.5, "gpu": 0.5}                  # slow, change load.py line 121 to 16
         #options = {"model": "config/yolov2-tiny-voc.cfg", "load": "config/yolov2-tiny.weights", "threshold": 0.5, "gpu": 0.5}    # fast, change load.py line 121 to 20
 
