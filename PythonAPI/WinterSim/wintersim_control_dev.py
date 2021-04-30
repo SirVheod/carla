@@ -258,10 +258,9 @@ class World(object):
         if self.radar_sensor is None:
             self.radar_sensor = wintersim_sensors.RadarSensor(self.player)
         elif self.radar_sensor.sensor is not None:
-            #self.radar_sensor.data_thread.pause()
-            self.radar_sensor.sensor.destroy()
+            self.radar_sensor.destroy_radar()
             self.radar_sensor = None
-
+           
     def tick(self, clock, hud_wintersim):
         self.hud_wintersim.tick(self, clock, hud_wintersim)
 
@@ -271,7 +270,7 @@ class World(object):
             # if multiplewindows enabled and setup done, enable MultipleWindows thread flag
             self.cv2_windows.resume()
 
-        if self.multiple_window_setup == False and self.multiple_windows_enabled:
+        if not self.multiple_window_setup and self.multiple_windows_enabled:
             # setup wintersim_multiplewindows.py
             self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
             self.multiple_window_setup = True
@@ -280,11 +279,13 @@ class World(object):
 
     def toggle_lidar(self, world, client):
         ''' Toggle lidar render/detection'''
-        if world.record_data and not world.render_lidar_detection:                               # Resumes to lidar object detection      
+
+        if world.record_data and not world.render_lidar_detection:                  # Resumes to lidar object detection      
             world.data_thread.make_lidar(world.player, world)                       # If theres no lidar lets make a new one
             world.render_lidar_detection = True
             client.get_world().apply_settings(world.settings)                       # apply custom settings
             world.data_thread.resume()                                              # resume object detection thread
+
         if not world.record_data and world.render_lidar_detection:
             world.render_lidar_detection = False
             client.get_world().apply_settings(world.original_settings)              # set default settings
@@ -395,12 +396,15 @@ def game_loop(args):
         world.settings.fixed_delta_seconds = 0.05
         world.settings.synchronous_mode = True
         
+       
         while True:
+            # this happens every simulation frame
 
             if world.render_lidar_detection:
-                clock.tick_busy_loop(20)                                    # This is so server and client sync to 20fps when doing object detection with lidar
+                clock.tick_busy_loop(20) # This is so server and client sync to 20 fps when doing object detection with lidar
             else:
-                clock.tick_busy_loop(60)                                    # If no object detection with lidar client can go to max 60fps
+                clock.tick_busy_loop(60) # If no object detection with lidar client can go to max 60 fps
+
             world.render_object_detection()                                
             if controller.parse_events(client, world, clock, hud_wintersim):
                 return

@@ -302,7 +302,11 @@ class RadarSensor(object):
             self.points = np.array(self.points)     # here we make numpy array
             self.data_thread.update(self.points)    # update detection thread data 
             self.points = []                        # clear points array
-           
+
+    def destroy_radar(self):
+        self.sensor.destroy()
+        self.data_thread.pause()
+        self.data_thread.destroy_window()
 
 # ==============================================================================
 # -- thread for radar based object detection() ---------------------------------
@@ -340,3 +344,6 @@ class RadarObjectDetection(threading.Thread): # this is pretty much same as lida
     def update(self, data):
         with self.state:
             self.data = data        # update data
+
+    def destroy_window(self):
+         object_detection.destroy_window()
