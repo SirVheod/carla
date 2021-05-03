@@ -87,9 +87,8 @@ import re
 import weakref
 from WinterSim import wintersim_hud
 from WinterSim import wintersim_sensors
-from wintersim_multiplewindows import MultipleWindows
 from wintersim_keyboard_control import KeyboardControl
-from wintersim_multiplewindows import MultipleWindows
+from wintersim_camera_windows import CameraWindows
 from wintersim_camera_manager import CameraManager
 
 try:
@@ -311,8 +310,8 @@ class World(object):
             self.cv2_windows.resume()
 
         if self.multiple_window_setup == False and self.multiple_windows_enabled:
-            # setup wintersim_multiplewindows.py
-            self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
+            # setup wintersim_camera_windows.py
+            self.cv2_windows = CameraWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
             self.multiple_window_setup = True
             self.cv2_windows.start()
             self.cv2_windows.pause()

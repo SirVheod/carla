@@ -33,8 +33,8 @@ VIEW_WIDTH = 608
 VIEW_HEIGHT = 384
 VIEW_FOV = 70
 
-class MultipleWindows(threading.Thread):
-    """ Wintersim multiplewindows class. Rendering CV2 windows happens in different thread than main pygame loop."""
+class CameraWindows(threading.Thread):
+    """ Wintersim Camerawindows class. Rendering CV2 windows happens in different thread than main pygame loop."""
 
     def camera_blueprint(self):
         """ Returns camera blueprint."""
@@ -168,7 +168,7 @@ class MultipleWindows(threading.Thread):
         cv2.destroyAllWindows()
 
     def __init__(self, car, camera, world, record, detection):
-        super(MultipleWindows, self).__init__()
+        super(CameraWindows, self).__init__()
         self.__flag = threading.Event()             # The flag used to pause the thread
         self.__flag.set()                           # Set to True
         self.__running = threading.Event()          # Used to stop the thread identification

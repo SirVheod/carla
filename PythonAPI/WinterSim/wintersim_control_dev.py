@@ -101,7 +101,7 @@ import open3d as o3d
 from wintersim_lidar_object_detection import LidarObjectDetection as LidarObjectDetection
 from object_detection import test_both_side_detection_dev as object_detection
 from wintersim_keyboard_control import KeyboardControl
-from wintersim_multiplewindows import MultipleWindows
+from wintersim_camera_windows import CameraWindows
 from wintersim_camera_manager import CameraManager
 
 try:

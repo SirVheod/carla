@@ -100,8 +100,7 @@ import open3d as o3d
 
 from wintersim_lidar_object_detection import LidarObjectDetection as LidarObjectDetection
 from object_detection import test_both_side_detection_dev as object_detection
-#from wintersim_keyboard_control import KeyboardControl
-from wintersim_multiplewindows import MultipleWindows
+from wintersim_camera_windows import CameraWindows
 from wintersim_camera_manager import CameraManager
 from autopilot import Autopilot
 
@@ -318,8 +317,8 @@ class World(object):
             self.cv2_windows.resume()
 
         if not self.multiple_window_setup and self.multiple_windows_enabled:
-            # setup wintersim_multiplewindows.py
-            self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
+            # setup wintersim_camera_windows.py
+            self.cv2_windows = CameraWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
             self.autopilot.set_camera(self.cv2_windows)
             self.multiple_window_setup = True
             self.cv2_windows.start()
