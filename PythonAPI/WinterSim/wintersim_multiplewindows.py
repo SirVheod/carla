@@ -1,4 +1,3 @@
-
 from SaveImageUtil import SaveImageUtil as save
 import threading
 import weakref
@@ -109,10 +108,10 @@ class MultipleWindows(threading.Thread):
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
             cv2.imshow("front_depth_image", i3)
-   
-    def callback_example(self, result):
-        print("callback")
 
+    def get_latests_results(self):
+        return self.results
+   
     def render_front_rgb_camera(self, rgb_display):
         """ Render front RGB camera"""
         if self.front_rgb_image is not None:
@@ -120,8 +119,7 @@ class MultipleWindows(threading.Thread):
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
             if self.detection:
-                #i4 = detectionAPI.detect_objects(i2, i3, self.callback_example)
-                i4 = detectionAPI.detect_objects(i2, i3, None)
+                i4, self.results = detectionAPI.detect_objects(i2, i3, None)
                 cv2.imshow("front RGB camera", i4)
             else:
                 cv2.imshow("front RGB camera", i3)
@@ -147,10 +145,10 @@ class MultipleWindows(threading.Thread):
 
     def render_all_windows(self):
         """ Render all separate sensors (cv2 windows)"""
-        self.render_back_rgb_camera(self.back_rgb_camera_display)
-        #self.render_front_depth(self.front_depth_display)
         self.render_front_rgb_camera(self.front_rgb_camera_display)
-        
+        #self.render_back_rgb_camera(self.back_rgb_camera_display)
+        #self.render_front_depth(self.front_depth_display)
+       
     def destroy(self):
         """Destroy spawned sensors and close all cv2 windows"""
         if self.record_images:
@@ -197,6 +195,7 @@ class MultipleWindows(threading.Thread):
         self.front_depth_camera = None
         self.front_depth_display = None
         self.front_depth_image = None
+        self.results = None
 
         # init save image utility
         save.initialize()
@@ -204,7 +203,7 @@ class MultipleWindows(threading.Thread):
         if self.detection:
             detectionAPI.Initialize()
 
-        self.setup_back_rgb_camera()
+        #self.setup_back_rgb_camera()
         self.setup_front_rgb_camera()
         #self.setup_front_depth_camera()
 

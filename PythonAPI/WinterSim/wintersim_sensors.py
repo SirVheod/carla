@@ -272,14 +272,14 @@ class RadarSensor(object):
             x = radius * math.sin(theta) * math.cos(phi)
             y = radius * math.sin(theta) * math.sin(phi)
             z = radius * math.cos(theta)
-            point = [x, -y, z, 1.0] 
+            d = radius
+            point = [x, -y, z, 1.0, d] 
             self.points.append(point) # add newly made point to points array
+            #print(radius)
             
             # The 0.25 adjusts a bit the distance so the dots can be properly seen
             fw_vec = carla.Vector3D(x=detect.depth - 0.25)
-            carla.Transform(
-                carla.Location(),
-                carla.Rotation(
+            carla.Transform(carla.Location(), carla.Rotation(
                     pitch=current_rot.pitch + alt,
                     yaw=current_rot.yaw + azi,
                     roll=current_rot.roll)).transform(fw_vec)
@@ -291,12 +291,10 @@ class RadarSensor(object):
             r = int(clamp(0.0, 1.0, 1.0 - norm_velocity) * 255.0)
             g = int(clamp(0.0, 1.0, 1.0 - abs(norm_velocity)) * 255.0)
             b = int(abs(clamp(- 1.0, 0.0, - 1.0 - norm_velocity)) * 255.0)
-            self.debug.draw_point(
-                radar_data.transform.location + fw_vec,
-                size=0.075,
-                life_time=0.06,
-                persistent_lines=False,
-                color=carla.Color(r, g, b))
+            # draw debug points on screen
+            # self.debug.draw_point(radar_data.transform.location + fw_vec,
+            #     size=0.075,life_time=0.06,
+            #     persistent_lines=False, color=carla.Color(r, g, b))
         
         if len(self.points) > 250:                  # if datapoint array contains atleast 250 points we do object detection
             self.points = np.array(self.points)     # here we make numpy array

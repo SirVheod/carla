@@ -95,29 +95,20 @@ class KeyboardControl(object):
                     world.hud_wintersim.toggle_info(world)
                 elif event.key == K_F2:
                     world.hud_wintersim.map.toggle()
-                    #if hud_wintersim.is_map:
-                        #hud_wintersim.is_map = False
-                    #if not hud_wintersim.is_map:
-                        #hud_wintersim.is_map = True
-
                 elif event.key == K_F4:
                     world.toggle_autonomous_autopilot()
-                    
                 elif event.key == K_F8:
                     world.detection = True
                     world.toggle_cv2_windows()
-
                 elif event.key == K_F9:
                     world.detection = False
                     world.toggle_cv2_windows()
-
                 elif event.key == K_F10:
                     world.detection = True
                     world.toggle_cv2_windows()
                     world.toggle_radar()
                     world.record_data = not world.record_data
                     world.toggle_lidar(world, client)
-                
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
                     world.next_map_layer(reverse=True)
                 elif event.key == K_v:

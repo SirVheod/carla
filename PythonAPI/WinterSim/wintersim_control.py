@@ -171,6 +171,12 @@ class World(object):
             print('  The server could not send the OpenDRIVE (.xodr) file:')
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
+        self.wintersim_autopilot = False
+        self.original_settings = None
+        self.settings = None
+        self.data_thread = None
+        self.isResumed = False
+        self.dataLidar = None
         self.args = args
         self.multiple_windows_enabled = args.windows
         self.cv2_windows = None
@@ -326,6 +332,9 @@ class World(object):
             self.cv2_windows.destroy()
             self.multiple_window_setup = False
 
+    # def toggle_autonomous_autopilot(self):
+    #         self.wintersim_autopilot = not self.wintersim_autopilot
+
     def update_friction(self, iciness):
         actors = self.world.get_actors()
         friction = 5
@@ -381,9 +390,7 @@ def game_loop(args):
         client = carla.Client(args.host, args.port)
         client.set_timeout(2.0)
 
-        display = pygame.display.set_mode(
-            (args.width, args.height),
-            pygame.HWSURFACE | pygame.DOUBLEBUF)
+        display = pygame.display.set_mode((args.width, args.height),pygame.HWSURFACE | pygame.DOUBLEBUF)
         display.fill((0,0,0))
         pygame.display.flip()
 
