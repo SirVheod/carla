@@ -88,8 +88,13 @@ import weakref
 from WinterSim import wintersim_hud
 from WinterSim import wintersim_sensors
 from wintersim_keyboard_control import KeyboardControl
-from wintersim_camera_windows import CameraWindows
 from wintersim_camera_manager import CameraManager
+
+try:
+    from wintersim_camera_windows import CameraWindows
+except:
+    print("no wintersim_camera_windows.py found")
+
 
 try:
     import pygame
@@ -240,7 +245,7 @@ class World(object):
                         self.player = vehicle
                         break
 
-        # Spawn the player.
+        # Spawn the player
         if not self.args.scenario:
             if self.player is not None:
                 spawn_point = self.player.get_transform()
@@ -255,9 +260,10 @@ class World(object):
                     print('Please add some Vehicle Spawn Point to your UE4 scene.')
                     sys.exit(1)
                 spawn_points = self.map.get_spawn_points()
-                spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()#spawn_points[727]#random.choice(spawn_points) if spawn_points else carla.Transform()
+                spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
                 self.player = self.world.try_spawn_actor(blueprint, spawn_point)
-        # Set up the sensors.
+
+        # Set up the sensors
         self.collision_sensor = wintersim_sensors.CollisionSensor(self.player, self.hud_wintersim)
         self.lane_invasion_sensor = wintersim_sensors.LaneInvasionSensor(self.player, self.hud_wintersim)
         self.gnss_sensor = wintersim_sensors.GnssSensor(self.player)
@@ -294,6 +300,7 @@ class World(object):
             self.world.load_map_layer(selected)
 
     def toggle_radar(self):
+        '''Toggle radar'''
         if self.radar_sensor is None:
             self.radar_sensor = wintersim_sensors.RadarSensor(self.player)
         elif self.radar_sensor.sensor is not None:
@@ -303,8 +310,8 @@ class World(object):
     def tick(self, clock, hud_wintersim):
         self.hud_wintersim.tick(self, clock, hud_wintersim)
 
-
     def render_object_detection(self):
+        '''Render camera object detection'''
         if self.multiple_windows_enabled and self.multiple_window_setup:
             # if multiplewindows enabled and setup done, enable MultipleWindows thread flag
             self.cv2_windows.resume()
@@ -317,8 +324,8 @@ class World(object):
             self.cv2_windows.pause()
 
     def block_object_detection(self):
+        '''if multiplewindows enabled, disable MultipleWindows thread flag'''
         if self.multiple_windows_enabled and self.cv2_windows is not None:
-            # if multiplewindows enabled, disable MultipleWindows thread flag
             self.cv2_windows.pause()
 
     def render(self, display):
@@ -330,9 +337,15 @@ class World(object):
         if self.multiple_windows_enabled == False and self.cv2_windows is not None:
             self.cv2_windows.destroy()
             self.multiple_window_setup = False
-
-    # def toggle_autonomous_autopilot(self):
-    #         self.wintersim_autopilot = not self.wintersim_autopilot
+    
+    def render_UI_sliders(self, world, client, hud_wintersim, display, weather):
+        for s in hud_wintersim.sliders:
+            if s.hit:
+                s.move()
+                weather.tick(hud_wintersim, world.preset[0])
+                client.get_world().set_weather(weather.weather)
+        for s in hud_wintersim.sliders:
+            s.draw(display, s)
 
     def update_friction(self, iciness):
         actors = self.world.get_actors()
@@ -401,7 +414,7 @@ def game_loop(args):
         controller = KeyboardControl(world, args.autopilot)
         weather = wintersim_hud.Weather(client.get_world().get_weather())   # weather object to update carla weather with sliders
         clock = pygame.time.Clock()
-        count = 0
+
         while True:
             clock.tick_busy_loop(60)
             world.render_object_detection()                                 # start detecting and rendering cv2 windows as early in the frame, uses another thread
@@ -409,15 +422,7 @@ def game_loop(args):
                 return
             world.tick(clock, hud_wintersim)
             world.render(display)
-            if hud_wintersim.is_hud:
-                for s in hud_wintersim.sliders: 
-                    if s.hit:                                               # if slider is being touched
-                        s.move()                                            # move slider
-                        weather.tick(hud_wintersim, world.preset[0])        # update weather object
-                        client.get_world().set_weather(weather.weather)     # send weather
-                for s in hud_wintersim.sliders:
-                    s.draw(display, s)
-
+            world.render_UI_sliders(world, client, hud_wintersim, display, weather)
             #world.block_object_detection()                                  # block object detection till next frame (pauses thread)
             pygame.display.flip()
 

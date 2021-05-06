@@ -15,8 +15,10 @@ class ImageDetection():
         Call this before calling detect_objects function'''
         global options, tfnet, color
 
-        # load cfg and weight file, download these files and put them under config/ folder.
-        options = {"model": "config/yolo.cfg", "load": "config/yolo.weights", "threshold": 0.5, "gpu": 0.5}                       # slowest but best accuracy, change load.py line 121 to 16
+        # load cfg, weight file, set threshold and set GPU memory allocation.
+        # gpu value means: allocated memory = available GPU memory * value
+        # Example if you have GPU with 8 GB of VRAM and set 0.5 as value, 4GB of VRAM will be allocated.
+        options = {"model": "config/yolo.cfg", "load": "config/yolo.weights", "threshold": 0.5, "gpu": 0.2}                       # slowest but best accuracy, change load.py line 121 to 16
         #options = {"model": "config/yolov2.cfg", "load": "config/yolov2.weights", "threshold": 0.5, "gpu": 0.5}                  # slow, change load.py line 121 to 16
         #options = {"model": "config/yolov2-tiny-voc.cfg", "load": "config/yolov2-tiny.weights", "threshold": 0.5, "gpu": 0.5}    # fast, change load.py line 121 to 20
 

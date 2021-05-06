@@ -357,6 +357,20 @@ class World(object):
         if self.player is not None:
             self.player.destroy()
 
+        if world.dataLidar is not None:
+            world.dataLidar.destroy()   
+
+        if world.data_thread is not None:
+            world.data_thread.pause()                                   
+            world.data_thread.destroy()
+
+        if world.original_settings is not None:
+            client.get_world().apply_settings(world.original_settings)
+
+        if world.cv2_windows is not None:
+            world.cv2_windows.destroy()
+
+
 # ==============================================================================
 # -- game_loop() ---------------------------------------------------------------
 # ==============================================================================
@@ -369,10 +383,7 @@ def game_loop(args):
     try:
         client = carla.Client(args.host, args.port)
         client.set_timeout(2.0)        
-
-        display = pygame.display.set_mode(
-            (args.width, args.height),
-            pygame.HWSURFACE | pygame.DOUBLEBUF)
+        display = pygame.display.set_mode((args.width, args.height),pygame.HWSURFACE | pygame.DOUBLEBUF)
         display.fill((0,0,0))
         pygame.display.flip()
 
@@ -396,7 +407,6 @@ def game_loop(args):
         world.settings.fixed_delta_seconds = 0.05
         world.settings.synchronous_mode = True
         
-       
         while True:
             # this happens every simulation frame
 
@@ -417,19 +427,6 @@ def game_loop(args):
                 client.get_world().tick()
 
     finally:
-        if world.dataLidar is not None:
-            world.dataLidar.destroy()   
-
-        if world.data_thread is not None:    
-            world.data_thread.pause()                                       
-            world.data_thread.destroy()
-
-        if world.original_settings is not None:
-            client.get_world().apply_settings(world.original_settings)
-
-        if world.cv2_windows is not None:
-            world.cv2_windows.destroy()
-
         if world is not None:
             world.destroy()
 

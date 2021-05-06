@@ -125,7 +125,7 @@ class CameraWindows(threading.Thread):
     def render_front_rgb_camera(self, rgb_display):
         """ Render front RGB camera"""
         if self.front_rgb_image is not None:
-            self.render_lane_detection(self.front_rgb_image)
+            #self.render_lane_detection(self.front_rgb_image)
             i = np.asarray(self.front_rgb_image.raw_data)
             i2 = i.reshape((VIEW_HEIGHT, VIEW_WIDTH, 4))
             i3 = i2[:, :, :3]
@@ -204,6 +204,7 @@ class CameraWindows(threading.Thread):
         self.front_depth_display = None
         self.front_depth_image = None
         self.results = None
+        self.lane_detection_results = None
 
         # init save image utility
         save.initialize()
@@ -353,16 +354,15 @@ class CameraWindows(threading.Thread):
         text_non = ''
         org = (320, 440)
         font = cv2.FONT_HERSHEY_SIMPLEX
-
         #print('lane_center_x=', lane_center_x)
 
-        if 0 < lane_center_x <= 316:
+        if 0 < lane_center_x <= 315:
             cv2.putText(size_im, text_left, org, font, 0.7, (0, 0, 255), 2)
 
-        elif 316 < lane_center_x < 324:
+        elif 315 < lane_center_x < 325:
             cv2.putText(size_im, text_center, org, font, 0.7, (0, 0, 255), 2)
 
-        elif lane_center_x >= 324:
+        elif lane_center_x >= 325:
             cv2.putText(size_im, text_right, org, font, 0.7, (0, 0, 255), 2)
 
         elif lane_center_x == 0:

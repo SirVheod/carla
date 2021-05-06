@@ -2,11 +2,6 @@ import carla
 import math
 
 try:
-    import pygame
-except ImportError:
-    raise RuntimeError('cannot import pygame, make sure pygame package is installed')
-
-try:
     import numpy as np
 except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
@@ -14,12 +9,11 @@ except ImportError:
 
 """
 Welcome to WinterSim CARLA Autopilot.
-Unlike Carla's own autopilot, this autopilot relies purely on sensors object detection information.
-However autopilot actions are hard coded.
+Unlike Carla's own autopilot, 
+this autopilot relies purely on sensor(s) object detection information and maneuvers based on that information.
 """
 
 class Autopilot(object):
-
     def __init__(self, world):
         self.world = world
         self._control = carla.VehicleControl()
@@ -58,14 +52,14 @@ class Autopilot(object):
             if result is not None:
                 for index in range(len(result)):
                     label = result[index]['label']
-                    confidence = result[index]['confidence']
-                    conf = int(confidence * 100)
-                    if label == "car":
+                    # confidence = result[index]['confidence']
+                    # conf = int(confidence * 100)
+                    if label == "car" or label == "truck":
                         self.vehicle_in_front = True
                         #print("detected vehicle in front!")
 
-    def parse_front_radar(self):
-        print("test")
+    #def parse_front_radar(self):
+        #print("test")
 
     def calculate_vehicle_speed(self, world):
         ''' Calculate vehicle speed'''
@@ -88,6 +82,7 @@ class Autopilot(object):
         self.parse_front_camera()
 
 
+        # check worst case first
         if self.emergency_break:
             self._control.throttle = 0.0
             self._control.brake = min(self._control.brake + 0.2, 1)
