@@ -38,19 +38,12 @@ class ImageDetection():
             callback(result)
 
         for index in range(len(result)):
-            # Parse list of dictionaries
             label = result[index]['label']
-
             x = result[index]['topleft_x']
             y = result[index]['topleft_y']
             xw = result[index]['bottomright_x']
             yh = result[index]['bottomright_y']
-
-            # uncomment to show: label + confidence (%)
-            #confidence = result[index]['confidence']
-            #conf = int(confidence * 100)
-            #fulllabel = str(label + ' ' + str(conf) + '%')
-
+            
             # Draw text and boxes around detected object
             cv2.rectangle(img, (x,y), (xw,yh), color, 2)
             cv2.putText(img, label, (x-10, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
