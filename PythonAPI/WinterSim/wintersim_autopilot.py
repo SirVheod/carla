@@ -121,6 +121,7 @@ try:
     from pygame.locals import K_F8
     from pygame.locals import K_F9
     from pygame.locals import K_F10
+    from pygame.locals import K_F12
     from pygame.locals import K_LEFT
     from pygame.locals import K_PERIOD
     from pygame.locals import K_RIGHT
@@ -261,7 +262,6 @@ class World(object):
                 print('Please add some Vehicle Spawn Point to your UE4 scene.')
                 sys.exit(1)
             spawn_points = self.map.get_spawn_points()
-            #spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()#spawn_points[727]#random.choice(spawn_points) if spawn_points else carla.Transform()
             spawn_point = spawn_points[146]
             self.player = self.world.try_spawn_actor(blueprint, spawn_point)
         # Set up the sensors.
@@ -462,6 +462,14 @@ class KeyboardControl(object):
                     world.toggle_radar()
                     world.record_data = not world.record_data
                     world.toggle_lidar(world, client)
+
+                elif event.key == K_F12:
+                    # toggle server rendering
+                    game_world = client.get_world()
+                    settings = game_world.get_settings()
+                    settings.no_rendering_mode = not settings.no_rendering_mode
+                    game_world.apply_settings(settings)
+
                 elif event.key == K_a:
                     world.wintersim_autopilot = not world.wintersim_autopilot
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
@@ -644,10 +652,9 @@ def game_loop(args):
         world.settings.synchronous_mode = True
 
         world.autopilot = Autopilot(world)
-        #world.wintersim_autopilot = True 
+ 
         
         while True:
-            # this happens every simulation frame
 
             if world.render_lidar_detection:
                 clock.tick_busy_loop(20)
