@@ -20,6 +20,7 @@ try:
     from pygame.locals import K_F8
     from pygame.locals import K_F9
     from pygame.locals import K_F10
+    from pygame.locals import K_F12
     from pygame.locals import K_LEFT
     from pygame.locals import K_PERIOD
     from pygame.locals import K_RIGHT
@@ -109,6 +110,14 @@ class KeyboardControl(object):
                     world.toggle_radar()
                     world.record_data = not world.record_data
                     world.toggle_lidar(world, client)
+
+                elif event.key == K_F12:
+                    # toggle server rendering
+                    game_world = client.get_world()
+                    settings = game_world.get_settings()
+                    settings.no_rendering_mode = not settings.no_rendering_mode
+                    game_world.apply_settings(settings)
+                    
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
                     world.next_map_layer(reverse=True)
                 elif event.key == K_v:
@@ -132,8 +141,8 @@ class KeyboardControl(object):
                 elif event.key == K_n:
                     world.camera_manager.next_sensor()
                 elif event.key == K_o:
-                    world.record_data = not world.record_data
                     world.toggle_lidar(world, client)
+                    world.record_data = not world.record_data
                 elif event.key == K_w and (pygame.key.get_mods() & KMOD_CTRL):
                     if world.constant_velocity_enabled:
                         world.player.disable_constant_velocity()

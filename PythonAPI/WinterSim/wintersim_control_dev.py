@@ -272,19 +272,19 @@ class World(object):
 
         if not self.multiple_window_setup and self.multiple_windows_enabled:
             # setup wintersim_multiplewindows.py
-            self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
+            self.cv2_windows = CameraWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
             self.multiple_window_setup = True
             self.cv2_windows.start()
             self.cv2_windows.pause()
 
     def toggle_lidar(self, world, client):
         ''' Toggle lidar render/detection'''
-
         if world.record_data and not world.render_lidar_detection:                  # Resumes to lidar object detection      
             world.data_thread.make_lidar(world.player, world)                       # If theres no lidar lets make a new one
             world.render_lidar_detection = True
             client.get_world().apply_settings(world.settings)                       # apply custom settings
             world.data_thread.resume()                                              # resume object detection thread
+            print("helo?")
 
         if not world.record_data and world.render_lidar_detection:
             world.render_lidar_detection = False
@@ -357,18 +357,18 @@ class World(object):
         if self.player is not None:
             self.player.destroy()
 
-        if world.dataLidar is not None:
-            world.dataLidar.destroy()   
+        if self.dataLidar is not None:
+            self.dataLidar.destroy()   
 
-        if world.data_thread is not None:
-            world.data_thread.pause()                                   
-            world.data_thread.destroy()
+        if self.data_thread is not None:
+            self.data_thread.pause()                                   
+            #self.data_thread.destroy()
 
-        if world.original_settings is not None:
-            client.get_world().apply_settings(world.original_settings)
+        if self.original_settings is not None:
+            client.get_world().apply_settings(self.original_settings)
 
-        if world.cv2_windows is not None:
-            world.cv2_windows.destroy()
+        if self.cv2_windows is not None:
+            self.cv2_windows.destroy()
 
 
 # ==============================================================================
@@ -406,9 +406,8 @@ def game_loop(args):
         world.settings = client.get_world().get_settings()
         world.settings.fixed_delta_seconds = 0.05
         world.settings.synchronous_mode = True
-        
+
         while True:
-            # this happens every simulation frame
 
             if world.render_lidar_detection:
                 clock.tick_busy_loop(20) # This is so server and client sync to 20 fps when doing object detection with lidar

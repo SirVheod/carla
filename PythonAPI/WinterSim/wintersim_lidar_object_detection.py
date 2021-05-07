@@ -49,12 +49,13 @@ class LidarObjectDetection(threading.Thread):
             self.state.notify()     # Unblock self if waiting.
 
     def update(self, pointcloud):
+        '''updates data to object detection thread'''
         with self.state:
-            self.data = pointcloud  # update data for object detection
+            self.data = pointcloud
 
     def make_lidar(self, player, world):
-        self.lidar = self.spawn_lidar(player, world) # spawn lidar
-        self.lidar.listen(lambda data: self.update(data))  # updates data to object detection thread
+        self.lidar = self.spawn_lidar(player, world)
+        self.lidar.listen(lambda data: self.update(data))
 
     def destroy_lidar(self):
         self.lidar.destroy()

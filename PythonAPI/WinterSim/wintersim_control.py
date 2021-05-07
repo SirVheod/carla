@@ -175,6 +175,7 @@ class World(object):
             print('  The server could not send the OpenDRIVE (.xodr) file:')
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
+        self.record_data = False
         self.wintersim_autopilot = False
         self.original_settings = None
         self.settings = None
@@ -300,7 +301,6 @@ class World(object):
             self.world.load_map_layer(selected)
 
     def toggle_radar(self):
-        '''Toggle radar'''
         if self.radar_sensor is None:
             self.radar_sensor = wintersim_sensors.RadarSensor(self.player)
         elif self.radar_sensor.sensor is not None:
@@ -311,7 +311,6 @@ class World(object):
         self.hud_wintersim.tick(self, clock, hud_wintersim)
 
     def render_object_detection(self):
-        '''Render camera object detection'''
         if self.multiple_windows_enabled and self.multiple_window_setup:
             # if multiplewindows enabled and setup done, enable MultipleWindows thread flag
             self.cv2_windows.resume()
