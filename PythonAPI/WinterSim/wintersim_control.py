@@ -98,46 +98,6 @@ except:
 
 try:
     import pygame
-    from pygame.locals import KMOD_CTRL
-    from pygame.locals import KMOD_SHIFT
-    from pygame.locals import K_0
-    from pygame.locals import K_9
-    from pygame.locals import K_BACKQUOTE
-    from pygame.locals import K_BACKSPACE
-    from pygame.locals import K_COMMA
-    from pygame.locals import K_DOWN
-    from pygame.locals import K_ESCAPE
-    from pygame.locals import K_F1
-    from pygame.locals import K_F2
-    from pygame.locals import K_F8
-    from pygame.locals import K_F9
-    from pygame.locals import K_LEFT
-    from pygame.locals import K_PERIOD
-    from pygame.locals import K_RIGHT
-    from pygame.locals import K_SLASH
-    from pygame.locals import K_SPACE
-    from pygame.locals import K_TAB
-    from pygame.locals import K_UP
-    from pygame.locals import K_a
-    from pygame.locals import K_b
-    from pygame.locals import K_c
-    from pygame.locals import K_d
-    from pygame.locals import K_g
-    from pygame.locals import K_h
-    from pygame.locals import K_i
-    from pygame.locals import K_l
-    from pygame.locals import K_m
-    from pygame.locals import K_n
-    from pygame.locals import K_p
-    from pygame.locals import K_q
-    from pygame.locals import K_r
-    from pygame.locals import K_s
-    from pygame.locals import K_v
-    from pygame.locals import K_w
-    from pygame.locals import K_x
-    from pygame.locals import K_z
-    from pygame.locals import K_MINUS
-    from pygame.locals import K_EQUALS
 except ImportError:
     raise RuntimeError('cannot import pygame, make sure pygame package is installed')
 
@@ -176,12 +136,9 @@ class World(object):
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
         self.record_data = False
-        self.wintersim_autopilot = False
         self.original_settings = None
         self.settings = None
-        self.data_thread = None
         self.isResumed = False
-        self.dataLidar = None
         self.args = args
         self.multiple_windows_enabled = args.windows
         self.cv2_windows = None
@@ -300,23 +257,15 @@ class World(object):
             self.hud_wintersim.notification('Loading map layer: %s' % selected)
             self.world.load_map_layer(selected)
 
-    def toggle_radar(self):
-        if self.radar_sensor is None:
-            self.radar_sensor = wintersim_sensors.RadarSensor(self.player)
-        elif self.radar_sensor.sensor is not None:
-            self.radar_sensor.sensor.destroy()
-            self.radar_sensor = None
-
     def tick(self, clock, hud_wintersim):
         self.hud_wintersim.tick(self, clock, hud_wintersim)
 
     def render_object_detection(self):
+        '''Render other camera windows'''
         if self.multiple_windows_enabled and self.multiple_window_setup:
-            # if multiplewindows enabled and setup done, enable MultipleWindows thread flag
             self.cv2_windows.resume()
 
         if self.multiple_window_setup == False and self.multiple_windows_enabled:
-            # setup wintersim_camera_windows.py
             self.cv2_windows = CameraWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
             self.multiple_window_setup = True
             self.cv2_windows.start()
@@ -422,7 +371,6 @@ def game_loop(args):
             world.tick(clock, hud_wintersim)
             world.render(display)
             world.render_UI_sliders(world, client, hud_wintersim, display, weather)
-            #world.block_object_detection()                                  # block object detection till next frame (pauses thread)
             pygame.display.flip()
 
     finally:

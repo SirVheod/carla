@@ -37,7 +37,6 @@ import re
 import weakref
 import wintersim_hud
 import wintersim_control
-from object_detection import test_detection_dev as object_detection
 
 # ==============================================================================
 # -- CollisionSensor -----------------------------------------------------------
@@ -233,9 +232,9 @@ class RadarSensor(object):
     def __init__(self, parent_actor):
         #self.opt, self.model = object_detection.main() 
         q = Queue()
-        self.data_thread = RadarObjectDetection(q, args=(False))
-        self.data_thread.start()
-        self.data_thread.resume()
+        # self.data_thread = RadarObjectDetection(q, args=(False))
+        # self.data_thread.start()
+        # self.data_thread.resume()
         self.sensor = None
         self.points = []
         self._parent = parent_actor
@@ -295,52 +294,12 @@ class RadarSensor(object):
             #     size=0.075,life_time=0.06,
             #     persistent_lines=False, color=carla.Color(r, g, b))
         
-        if len(self.points) > 250:                  # if datapoint array contains atleast 250 points we do object detection
-            self.points = np.array(self.points)     # here we make numpy array
-            self.data_thread.update(self.points)    # update detection thread data 
-            self.points = []                        # clear points array
+        # if len(self.points) > 250:                  # if datapoint array contains atleast 250 points we do object detection
+        #     self.points = np.array(self.points)     # here we make numpy array
+        #     self.data_thread.update(self.points)    # update detection thread data 
+        #     self.points = []                        # clear points array
 
     def destroy_radar(self):
         self.sensor.destroy()
-        self.data_thread.pause()
-        self.data_thread.destroy_window()
-
-# ==============================================================================
-# -- thread for radar based object detection() ---------------------------------
-# ==============================================================================
-
-class RadarObjectDetection(threading.Thread): # this is pretty much same as lidar detection thread 
-    def __init__(self, queue, args=(), kwargs=None):
-        threading.Thread.__init__(self, args=(), kwargs=None)
-        self.opt, self.model = object_detection.main()
-        self.queue = queue
-        self.daemon = True
-        self.paused = args
-        self.state = threading.Condition()
-        self.data = None
-        self.tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
-
-    def run(self):
-        while True:
-            with self.state:
-                if self.paused:
-                    self.state.wait()                                                       # Block execution until notified.
-            if self.data is not None:                                                       # if there is data we run this
-                object_detection.detect(self.opt, self.model, self.data, self.tensor)       # detection magick
-
-
-    def pause(self):
-        with self.state:
-            self.paused = True      # Block self
-
-    def resume(self):
-        with self.state:
-            self.paused = False
-            self.state.notify()     # Unblock self if waiting.
-
-    def update(self, data):
-        with self.state:
-            self.data = data        # update data
-
-    def destroy_window(self):
-         object_detection.destroy_window()
+        # self.data_thread.pause()
+        # self.data_thread.destroy_window()

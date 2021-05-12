@@ -18,7 +18,6 @@ try:
     from pygame.locals import K_F2
     from pygame.locals import K_F4
     from pygame.locals import K_F8
-    from pygame.locals import K_F9
     from pygame.locals import K_F10
     from pygame.locals import K_F12
     from pygame.locals import K_LEFT
@@ -77,18 +76,18 @@ class KeyboardControl(object):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return True
-            elif event.type == pygame.MOUSEBUTTONDOWN: #slider event
+            elif event.type == pygame.MOUSEBUTTONDOWN:              # slider event
                 if world.hud_wintersim.is_hud:
                     pos = pygame.mouse.get_pos()
                     for slider in hud_wintersim.sliders:
-                        if slider.button_rect.collidepoint(pos): #get slider what mouse is touching
-                            slider.hit = True #slider is being moved
-            elif event.type == pygame.MOUSEBUTTONUP: #slider event
+                        if slider.button_rect.collidepoint(pos):    # get slider what mouse is touching
+                            slider.hit = True                       # slider is being moved
+            elif event.type == pygame.MOUSEBUTTONUP:                # slider event
                 if world.hud_wintersim.is_hud:
-                    if hud_wintersim.ice_slider.hit: #if road iciness is updated
+                    if hud_wintersim.ice_slider.hit:                # if road iciness is updated
                         world.update_friction(hud_wintersim.ice_slider.val)
                     for slider in hud_wintersim.sliders:
-                        slider.hit = False #slider moving stopped
+                        slider.hit = False                          # slider moving stopped
             elif event.type == pygame.KEYUP:
                 if self._is_quit_shortcut(event.key):
                     return True
@@ -101,23 +100,11 @@ class KeyboardControl(object):
                 elif event.key == K_F8:
                     world.detection = True
                     world.toggle_cv2_windows()
-                elif event.key == K_F9:
-                    world.detection = False
-                    world.toggle_cv2_windows()
-                elif event.key == K_F10:
-                    world.detection = True
-                    world.toggle_cv2_windows()
-                    world.toggle_radar()
-                    world.record_data = not world.record_data
-                    world.toggle_lidar(world, client)
-
                 elif event.key == K_F12:
-                    # toggle server rendering
-                    game_world = client.get_world()
+                    game_world = client.get_world()                 # toggle server rendering
                     settings = game_world.get_settings()
                     settings.no_rendering_mode = not settings.no_rendering_mode
                     game_world.apply_settings(settings)
-                    
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
                     world.next_map_layer(reverse=True)
                 elif event.key == K_v:
