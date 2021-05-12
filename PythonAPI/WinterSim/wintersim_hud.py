@@ -1,45 +1,8 @@
 #!/usr/bin/env python
 
 """
-Welcome to CARLA manual control.
-
-Use ARROWS or WASD keys for control.
-
-    W            : throttle
-    S            : brake
-    A/D          : steer left/right
-    Q            : toggle reverse
-    Space        : hand-brake
-    P            : toggle autopilot
-    M            : toggle manual transmission
-    ,/.          : gear up/down
-    CTRL + W     : toggle constant velocity mode at 60 km/h
-
-    L            : toggle next light type
-    SHIFT + L    : toggle high beam
-    Z/X          : toggle right/left blinker
-    I            : toggle interior light
-
-    TAB          : change sensor position
-    ` or N       : next sensor
-    [1-9]        : change to sensor [1-9]
-    G            : toggle radar visualization
-    C            : change weather (Shift+C reverse)
-    Backspace    : change vehicle
-
-    V            : Select next map layer (Shift+V reverse)
-    B            : Load current selected map layer (Shift+B to unload)
-
-    R            : toggle recording images to disk
-
-    CTRL + R     : toggle recording of simulation (replacing any previous)
-    CTRL + P     : start replaying last recorded simulation
-    CTRL + +     : increments the start time of the replay by 1 second (+SHIFT = 10 seconds)
-    CTRL + -     : decrements the start time of the replay by 1 second (+SHIFT = 10 seconds)
-
-    F1           : toggle HUD
-    H/?          : toggle help
-    ESC          : quit;"""
+Wintersim HUD Script
+"""
 
 import glob
 import os
@@ -63,10 +26,10 @@ import math
 import datetime
 from WinterSim import wintersim_control
 import carla
+
 # ==============================================================================
 # -- HUD_WINTERSIM -------------------------------------------------------------
 # ==============================================================================
-
 
 class HUD_WINTERSIM(object):
     def __init__(self, width, height, display):
@@ -253,7 +216,6 @@ class HUD_WINTERSIM(object):
 # -- SliderObject -------------------------------------------------------------
 # ==============================================================================
 
-
 class Slider():
     def __init__(self, name, val, maxi, mini, pos):
         BLACK = (0, 0, 0)
@@ -262,14 +224,14 @@ class Slider():
         WHITE = (255, 255, 255)
         self.font = pygame.font.SysFont("ubuntumono", 14)
         self.name = name
-        self.val = val  # start value
-        self.maxi = maxi  # maximum at slider position right
-        self.mini = mini  # minimum at slider position left
-        self.xpos = pos  # x-location on screen
+        self.val = val      # start value
+        self.maxi = maxi    # maximum at slider position right
+        self.mini = mini    # minimum at slider position left
+        self.xpos = pos     # x-location on screen
         self.ypos = 20
         self.surf = pygame.surface.Surface((100, 50))
         #self.surf.set_alpha(200)
-        self.hit = False  # the hit attribute indicates slider movement due to mouse interaction
+        self.hit = False    # the hit attribute indicates slider movement due to mouse interaction
 
         self.txt_surf = self.font.render(name, 1, BLACK)
         self.txt_rect = self.txt_surf.get_rect(center=(50, 15))
@@ -323,11 +285,9 @@ class Slider():
         if self.val > self.maxi:
             self.val = self.maxi
 
- 
 # ==============================================================================
 # -- WeatherObject -------------------------------------------------------------
 # ==============================================================================
-
 
 class Weather(object):
     def __init__(self, weather):
@@ -348,11 +308,9 @@ class Weather(object):
     def __str__(self):
         return '%s %s' % (self._sun, self._storm)
 
-
 # ==============================================================================
 # -- FadingText ----------------------------------------------------------------
 # ==============================================================================
-
 
 class FadingText(object):
     def __init__(self, font, dim, pos):
@@ -377,11 +335,9 @@ class FadingText(object):
     def render(self, display):
         display.blit(self.surface, self.pos)
 
-
 # ==============================================================================
 # -- HelpText ------------------------------------------------------------------
 # ==============================================================================
-
 
 class HelpText(object):
     """Helper class to handle text output using pygame"""

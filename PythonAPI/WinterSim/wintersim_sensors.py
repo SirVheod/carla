@@ -1,12 +1,20 @@
 #!/usr/bin/env python
+"""
+Wintersim sensors class
+"""
+
+# ==============================================================================
+# -- imports -------------------------------------------------------------------
+# ==============================================================================
+
 import glob
 import os
-import sys
 import re
+import sys
 import threading
 import time
-import numpy as np
 from queue import Queue
+import numpy as np
 import torch
 
 try:
@@ -17,16 +25,6 @@ try:
 except IndexError:
     pass
 
-
-# ==============================================================================
-# -- imports -------------------------------------------------------------------
-# ==============================================================================
-
-
-import carla
-
-from carla import ColorConverter as cc
-
 import argparse
 import collections
 import datetime
@@ -35,7 +33,8 @@ import math
 import random
 import re
 import weakref
-import wintersim_hud
+import carla
+from carla import ColorConverter as cc
 import wintersim_control
 
 # ==============================================================================
@@ -51,8 +50,7 @@ class CollisionSensor(object):
         world = self._parent.get_world()
         bp = world.get_blueprint_library().find('sensor.other.collision')
         self.sensor = world.spawn_actor(bp, carla.Transform(), attach_to=self._parent)
-        # We need to pass the lambda a weak reference to self to avoid circular
-        # reference.
+        # We need to pass the lambda a weak reference to self to avoid circular reference.
         weak_self = weakref.ref(self)
         self.sensor.listen(lambda event: CollisionSensor._on_collision(weak_self, event))
 
@@ -75,7 +73,6 @@ class CollisionSensor(object):
         if len(self.history) > 4000:
             self.history.pop(0)
 
-
 # ==============================================================================
 # -- LaneInvasionSensor --------------------------------------------------------
 # ==============================================================================
@@ -88,8 +85,7 @@ class LaneInvasionSensor(object):
         world = self._parent.get_world()
         bp = world.get_blueprint_library().find('sensor.other.lane_invasion')
         self.sensor = world.spawn_actor(bp, carla.Transform(), attach_to=self._parent)
-        # We need to pass the lambda a weak reference to self to avoid circular
-        # reference.
+        # We need to pass the lambda a weak reference to self to avoid circular reference.
         weak_self = weakref.ref(self)
         self.sensor.listen(lambda event: LaneInvasionSensor._on_invasion(weak_self, event))
 
@@ -101,7 +97,6 @@ class LaneInvasionSensor(object):
         lane_types = set(x.type for x in event.crossed_lane_markings)
         text = ['%r' % str(x).split()[-1] for x in lane_types]
         self.hud.notification('Crossed line %s' % ' and '.join(text))
-
 
 # ==============================================================================
 # -- GnssSensor ----------------------------------------------------------------
@@ -127,7 +122,6 @@ class GnssSensor(object):
             return
         self.lat = event.latitude
         self.lon = event.longitude
-
 
 # ==============================================================================
 # -- IMUSensor -----------------------------------------------------------------
@@ -195,10 +189,6 @@ class RadarSensor(object):
         self = weak_self()
         if not self:
             return
-        # To get a numpy [[vel, altitude, azimuth, depth],...[,,,]]:
-        # points = np.frombuffer(radar_data.raw_data, dtype=np.dtype('f4'))
-        # points = np.reshape(points, (len(radar_data), 4))
-
         current_rot = radar_data.transform.rotation
         for detect in radar_data:
             azi = math.degrees(detect.azimuth)

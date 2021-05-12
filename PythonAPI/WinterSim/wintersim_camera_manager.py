@@ -1,6 +1,6 @@
 from carla import ColorConverter as cc
-import carla
 import weakref
+import carla
 
 try:
     import numpy as np

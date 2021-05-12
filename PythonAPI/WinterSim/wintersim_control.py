@@ -48,17 +48,21 @@ Use ARROWS or WASD keys for control.
 
 
     F1           : toggle HUD
-    F8           : Open CV2 windows with object detection (Requires NVIDIA GPU + CUDA!)
-    F9           : Open CV2 Windows without object detection
+    F8           : Spawn  separate front and back camera windows
     H/?          : toggle help
     ESC          : quit;
 """
 
+# ==============================================================================
+# -- imports -------------------------------------------------------------------
+# ==============================================================================
+
 from __future__ import print_function
+
 import glob
 import os
-import sys
 import re
+import sys
 import threading
 import time
 
@@ -70,13 +74,6 @@ try:
 except IndexError:
     pass
 
-
-# ==============================================================================
-# -- imports -------------------------------------------------------------------
-# ==============================================================================
-
-import carla
-from carla import ColorConverter as cc
 import argparse
 import collections
 import datetime
@@ -85,16 +82,14 @@ import math
 import random
 import re
 import weakref
-from WinterSim import wintersim_hud
-from WinterSim import wintersim_sensors
-from wintersim_keyboard_control import KeyboardControl
+
+import carla
+from carla import ColorConverter as cc
+
+from WinterSim import wintersim_hud, wintersim_sensors
 from wintersim_camera_manager import CameraManager
-
-try:
-    from wintersim_camera_windows import CameraWindows
-except:
-    print("no wintersim_camera_windows.py found")
-
+from wintersim_camera_windows import CameraWindows
+from wintersim_keyboard_control import KeyboardControl
 
 try:
     import pygame
@@ -115,7 +110,6 @@ def find_weather_presets():
     name = lambda x: ' '.join(m.group(0) for m in rgx.finditer(x))
     presets = [x for x in dir(carla.WeatherParameters) if re.match('[A-Z].+', x)]
     return [(getattr(carla.WeatherParameters, x), name(x)) for x in presets]
-
 
 def get_actor_display_name(actor, truncate=250):
     name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
@@ -203,7 +197,7 @@ class World(object):
                         self.player = vehicle
                         break
 
-        # Spawn the player
+        # Spawn the player (Scenario)
         if not self.args.scenario:
             if self.player is not None:
                 spawn_point = self.player.get_transform()
@@ -294,6 +288,12 @@ class World(object):
                 client.get_world().set_weather(weather.weather)
         for s in hud_wintersim.sliders:
             s.draw(display, s)
+    def toggle_radar(self):
+        if self.radar_sensor is None:
+            self.radar_sensor = wintersim_sensors.RadarSensor(self.player)
+        elif self.radar_sensor.sensor is not None:
+            self.radar_sensor.sensor.destroy()
+            self.radar_sensor = None
 
     def update_friction(self, iciness):
         actors = self.world.get_actors()
@@ -365,7 +365,7 @@ def game_loop(args):
 
         while True:
             clock.tick_busy_loop(60)
-            world.render_object_detection()                                 # start detecting and rendering cv2 windows as early in the frame, uses another thread
+            world.render_object_detection()
             if controller.parse_events(client, world, clock, hud_wintersim):
                 return
             world.tick(clock, hud_wintersim)
