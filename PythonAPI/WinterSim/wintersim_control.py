@@ -88,9 +88,9 @@ from carla import ColorConverter as cc
 
 import wintersim_hud
 import wintersim_sensors
-from WinterSim.wintersim_camera_manager import CameraManager
-from WinterSim.wintersim_camera_windows import CameraWindows
-from WinterSim.wintersim_keyboard_control import KeyboardControl
+from wintersim_camera_manager import CameraManager
+from wintersim_camera_windows import CameraWindows
+from wintersim_keyboard_control import KeyboardControl
 
 try:
     import pygame
