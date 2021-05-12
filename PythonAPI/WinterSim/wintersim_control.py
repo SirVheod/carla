@@ -48,7 +48,7 @@ Use ARROWS or WASD keys for control.
 
 
     F1           : toggle HUD
-    F8           : Launch separate Camera window
+    F8           : Spawn  separate front and back camera windows
     H/?          : toggle help
     ESC          : quit;
 """

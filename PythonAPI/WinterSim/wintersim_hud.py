@@ -225,14 +225,14 @@ class Slider():
         WHITE = (255, 255, 255)
         self.font = pygame.font.SysFont("ubuntumono", 14)
         self.name = name
-        self.val = val  # start value
-        self.maxi = maxi  # maximum at slider position right
-        self.mini = mini  # minimum at slider position left
-        self.xpos = pos  # x-location on screen
+        self.val = val      # start value
+        self.maxi = maxi    # maximum at slider position right
+        self.mini = mini    # minimum at slider position left
+        self.xpos = pos     # x-location on screen
         self.ypos = 20
         self.surf = pygame.surface.Surface((100, 50))
         #self.surf.set_alpha(200)
-        self.hit = False  # the hit attribute indicates slider movement due to mouse interaction
+        self.hit = False    # the hit attribute indicates slider movement due to mouse interaction
 
         self.txt_surf = self.font.render(name, 1, BLACK)
         self.txt_rect = self.txt_surf.get_rect(center=(50, 15))
@@ -286,7 +286,6 @@ class Slider():
         if self.val > self.maxi:
             self.val = self.maxi
 
- 
 # ==============================================================================
 # -- WeatherObject -------------------------------------------------------------
 # ==============================================================================
@@ -309,7 +308,6 @@ class Weather(object):
         self.weather.ice_amount = hud_wintersim.ice_slider.val
     def __str__(self):
         return '%s %s' % (self._sun, self._storm)
-
 
 # ==============================================================================
 # -- FadingText ----------------------------------------------------------------
@@ -337,7 +335,6 @@ class FadingText(object):
 
     def render(self, display):
         display.blit(self.surface, self.pos)
-
 
 # ==============================================================================
 # -- HelpText ------------------------------------------------------------------

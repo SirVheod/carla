@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 Wintersim sensors class
 """

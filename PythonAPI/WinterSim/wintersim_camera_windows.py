@@ -181,7 +181,7 @@ class CameraWindows(threading.Thread):
         self.results = None
         self.lane_detection_results = None
 
-        #self.setup_back_rgb_camera()
+        self.setup_back_rgb_camera()
         self.setup_front_rgb_camera()
         #self.setup_front_depth_camera()
 
