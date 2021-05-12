@@ -387,10 +387,6 @@ class KeyboardControl(object):
                     world.hud_wintersim.toggle_info(world)
                 elif event.key == K_F2:
                     world.hud_wintersim.map.toggle()
-                    #if hud_wintersim.is_map:
-                        #hud_wintersim.is_map = False
-                    #if not hud_wintersim.is_map:
-                        #hud_wintersim.is_map = True
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
                     world.next_map_layer(reverse=True)
                 elif event.key == K_v:
