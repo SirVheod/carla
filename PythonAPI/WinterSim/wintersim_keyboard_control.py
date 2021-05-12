@@ -1,5 +1,3 @@
-import wintersim_sensors
-import wintersim_hud
 import carla
 import math
 
@@ -45,7 +43,6 @@ try:
     from pygame.locals import K_w
     from pygame.locals import K_x
     from pygame.locals import K_z
-    from pygame.locals import K_o
     from pygame.locals import K_MINUS
     from pygame.locals import K_EQUALS
 except ImportError:
@@ -127,9 +124,6 @@ class KeyboardControl(object):
                     world.camera_manager.next_sensor()
                 elif event.key == K_n:
                     world.camera_manager.next_sensor()
-                elif event.key == K_o:
-                    world.toggle_lidar(world, client)
-                    world.record_data = not world.record_data
                 elif event.key == K_w and (pygame.key.get_mods() & KMOD_CTRL):
                     if world.constant_velocity_enabled:
                         world.player.disable_constant_velocity()

@@ -1,17 +1,17 @@
-import threading
-import weakref
-import random
-import carla
-import time
-import glob
-import sys
-import cv2
-import os
 import collections
 import datetime
+import glob
 import logging
 import math
+import os
+import random
 import re
+import sys
+import threading
+import time
+import weakref
+import carla
+import cv2
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -135,7 +135,7 @@ class CameraWindows(threading.Thread):
     def render_all_windows(self):
         """ Render all separate sensors (cv2 windows)"""
         self.render_front_rgb_camera(self.front_rgb_camera_display)
-        #self.render_back_rgb_camera(self.back_rgb_camera_display)
+        self.render_back_rgb_camera(self.back_rgb_camera_display)
         #self.render_front_depth(self.front_depth_display)
        
     def destroy(self):
