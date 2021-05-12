@@ -1,0 +1,45 @@
+How to use:
+
+1) Open command line and locate to ../scenario_runner folder
+
+python scenario_runner.py --openscenario /srunner/examples/Slalom.xosc
+
+2) Open secod CMD and start wintersim scenario control script
+
+python wintersim_scenario_control.py
+
+extra arguments:
+
+--output which prints test case criteria results
+
+---------------------------------------------
+
+-- Muonio map scenarios --
+
+python scenario_runner.py --openscenario /srunner/wintersim/brake_test_static_vehicle_muonio.xosc --output
+python scenario_runner.py --openscenario /srunner/wintersim/collisionavoidancevehicle_muonio.xosc --output
+python scenario_runner.py --openscenario /srunner\wintersim/collisionavoidancevehicle_muonio.xosc --output
+python scenario_runner.py --openscenario /srunner\wintersim/pedestrianCrossingFront_muonio.xosc --output
+python scenario_runner.py --openscenario /srunner/wintersim/pedestrianCrossingFront_muonio.xosc --output
+python scenario_runner.py --openscenario /srunner\wintersim/followleadingvehicle_muonio.xosc --output
+python scenario_runner.py --openscenario /srunner\wintersim/intersection_walker_muonio.xosc --output
+python scenario_runner.py --openscenario /srunner\wintersim/masterscenario_muonio.xosc --output
+python scenario_runner.py --openscenario /srunner\wintersim/intersection_muonio.xosc --output
+
+----------------------------
+
+-- wintersim training scenarions --
+
+// simple turn right scenario, time limit: 20s
+python scenario_runner.py --openscenario /srunner\wintersim/training_right_turn_town01.xosc --output
+
+// simple turn left scenario, time limit: 20s
+python scenario_runner.py --openscenario /srunner\wintersim/training_left_turn_town01.xosc --output
+
+// Scenario where there's a vehicle driving in front and on coming driver coming as well
+python scenario_runner.py --openscenario /srunner\wintersim/training_vehicles_front_town01.xosc --output
+
+
+// single script launching both scenario runner and scenario
+python wintersim_scenario_runner.py --openscenario /srunner\wintersim/intersection_muonio.xosc --output
+

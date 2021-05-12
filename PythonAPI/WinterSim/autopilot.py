@@ -6,7 +6,6 @@ try:
 except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
 
-
 """
 Welcome to WinterSim CARLA Autopilot.
 Unlike Carla's own autopilot, 
