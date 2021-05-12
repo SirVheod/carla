@@ -92,7 +92,7 @@ import re
 import weakref
 from WinterSim import wintersim_hud
 from WinterSim import wintersim_sensors
-from wintersim_multiplewindows import MultipleWindows
+from WinterSim.wintersim_camera_windows import CameraWindows
 
 try:
     import pygame
@@ -309,7 +309,7 @@ class World(object):
 
         if self.multiple_window_setup == False and self.multiple_windows_enabled:
             # setup wintersim_multiplewindows.py
-            self.cv2_windows = MultipleWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
+            self.cv2_windows = CameraWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
             self.multiple_window_setup = True
             self.cv2_windows.start()
             self.cv2_windows.pause()
@@ -866,6 +866,11 @@ def main():
         default=2.2,
         type=float,
         help='Gamma correction of the camera (default: 2.2)')
+    argparser.add_argument(
+        '--windows',
+        default=False,
+        type=bool,
+        help='multiplewindows')
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]
