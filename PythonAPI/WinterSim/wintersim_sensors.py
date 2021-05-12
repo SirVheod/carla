@@ -169,89 +169,29 @@ class IMUSensor(object):
 # -- RadarSensor ---------------------------------------------------------------
 # ==============================================================================
 
-
-# class RadarSensor(object):
-#     def __init__(self, parent_actor):
-#         self.sensor = None
-#         self._parent = parent_actor
-#         self.velocity_range = 7.5 # m/s
-#         world = self._parent.get_world()
-#         self.debug = world.debug
-#         bp = world.get_blueprint_library().find('sensor.other.radar')
-#         bp.set_attribute('horizontal_fov', str(35))
-#         bp.set_attribute('vertical_fov', str(20))
-#         self.sensor = world.spawn_actor(
-#             bp,
-#             carla.Transform(
-#                 carla.Location(x=2.8, z=1.0),
-#                 carla.Rotation(pitch=5)),
-#             attach_to=self._parent)
-#         # We need a weak reference to self to avoid circular reference.
-#         weak_self = weakref.ref(self)
-#         self.sensor.listen(
-#             lambda radar_data: RadarSensor._Radar_callback(weak_self, radar_data))
-
-#     @staticmethod
-#     def _Radar_callback(weak_self, radar_data):
-#         self = weak_self()
-#         if not self:
-#             return
-#         # To get a numpy [[vel, altitude, azimuth, depth],...[,,,]]:
-#         # points = np.frombuffer(radar_data.raw_data, dtype=np.dtype('f4'))
-#         # points = np.reshape(points, (len(radar_data), 4))
-
-#         current_rot = radar_data.transform.rotation
-#         for detect in radar_data:
-#             azi = math.degrees(detect.azimuth)
-#             alt = math.degrees(detect.altitude)
-#             # The 0.25 adjusts a bit the distance so the dots can
-#             # be properly seen
-#             fw_vec = carla.Vector3D(x=detect.depth - 0.25)
-#             carla.Transform(
-#                 carla.Location(),
-#                 carla.Rotation(
-#                     pitch=current_rot.pitch + alt,
-#                     yaw=current_rot.yaw + azi,
-#                     roll=current_rot.roll)).transform(fw_vec)
-
-#             def clamp(min_v, max_v, value):
-#                 return max(min_v, min(value, max_v))
-
-#             norm_velocity = detect.velocity / self.velocity_range # range [-1, 1]
-#             r = int(clamp(0.0, 1.0, 1.0 - norm_velocity) * 255.0)
-#             g = int(clamp(0.0, 1.0, 1.0 - abs(norm_velocity)) * 255.0)
-#             b = int(abs(clamp(- 1.0, 0.0, - 1.0 - norm_velocity)) * 255.0)
-#             self.debug.draw_point(
-#                 radar_data.transform.location + fw_vec,
-#                 size=0.075,
-#                 life_time=0.06,
-#                 persistent_lines=False,
-#                 color=carla.Color(r, g, b))
-
 class RadarSensor(object):
     def __init__(self, parent_actor):
-        #self.opt, self.model = object_detection.main() 
-        q = Queue()
-        # self.data_thread = RadarObjectDetection(q, args=(False))
-        # self.data_thread.start()
-        # self.data_thread.resume()
         self.sensor = None
-        self.points = []
         self._parent = parent_actor
         self.velocity_range = 7.5 # m/s
         world = self._parent.get_world()
         self.debug = world.debug
         bp = world.get_blueprint_library().find('sensor.other.radar')
-        bp.set_attribute('horizontal_fov', str(50))
-        #bp.set_attribute('points_per_second', str(5000))
-        self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(x=2.8, z=1.0)),attach_to=self._parent)
-
+        bp.set_attribute('horizontal_fov', str(35))
+        bp.set_attribute('vertical_fov', str(20))
+        self.sensor = world.spawn_actor(
+            bp,
+            carla.Transform(
+                carla.Location(x=2.8, z=1.0),
+                carla.Rotation(pitch=5)),
+            attach_to=self._parent)
         # We need a weak reference to self to avoid circular reference.
         weak_self = weakref.ref(self)
-        self.sensor.listen(lambda radar_data: RadarSensor._Radar_callback(weak_self, radar_data, parent_actor))
+        self.sensor.listen(
+            lambda radar_data: RadarSensor._Radar_callback(weak_self, radar_data))
 
     @staticmethod
-    def _Radar_callback(weak_self, radar_data, parent_actor):
+    def _Radar_callback(weak_self, radar_data):
         self = weak_self()
         if not self:
             return
@@ -263,21 +203,12 @@ class RadarSensor(object):
         for detect in radar_data:
             azi = math.degrees(detect.azimuth)
             alt = math.degrees(detect.altitude)
-            
-            theta = math.radians(90 - alt) # here we do some magick by making points from the data given
-            phi = detect.azimuth
-            radius = detect.depth
-            x = radius * math.sin(theta) * math.cos(phi)
-            y = radius * math.sin(theta) * math.sin(phi)
-            z = radius * math.cos(theta)
-            d = radius
-            point = [x, -y, z, 1.0, d] 
-            self.points.append(point) # add newly made point to points array
-            #print(radius)
-            
-            # The 0.25 adjusts a bit the distance so the dots can be properly seen
+            # The 0.25 adjusts a bit the distance so the dots can
+            # be properly seen
             fw_vec = carla.Vector3D(x=detect.depth - 0.25)
-            carla.Transform(carla.Location(), carla.Rotation(
+            carla.Transform(
+                carla.Location(),
+                carla.Rotation(
                     pitch=current_rot.pitch + alt,
                     yaw=current_rot.yaw + azi,
                     roll=current_rot.roll)).transform(fw_vec)
@@ -289,17 +220,9 @@ class RadarSensor(object):
             r = int(clamp(0.0, 1.0, 1.0 - norm_velocity) * 255.0)
             g = int(clamp(0.0, 1.0, 1.0 - abs(norm_velocity)) * 255.0)
             b = int(abs(clamp(- 1.0, 0.0, - 1.0 - norm_velocity)) * 255.0)
-            # draw debug points on screen
-            # self.debug.draw_point(radar_data.transform.location + fw_vec,
-            #     size=0.075,life_time=0.06,
-            #     persistent_lines=False, color=carla.Color(r, g, b))
-        
-        # if len(self.points) > 250:                  # if datapoint array contains atleast 250 points we do object detection
-        #     self.points = np.array(self.points)     # here we make numpy array
-        #     self.data_thread.update(self.points)    # update detection thread data 
-        #     self.points = []                        # clear points array
-
-    def destroy_radar(self):
-        self.sensor.destroy()
-        # self.data_thread.pause()
-        # self.data_thread.destroy_window()
+            self.debug.draw_point(
+                radar_data.transform.location + fw_vec,
+                size=0.075,
+                life_time=0.06,
+                persistent_lines=False,
+                color=carla.Color(r, g, b))               # clear points array

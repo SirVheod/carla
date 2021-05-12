@@ -93,8 +93,6 @@ class KeyboardControl(object):
                     return True
                 elif event.key == K_F1:
                     world.hud_wintersim.toggle_info(world)
-                elif event.key == K_F2:
-                    world.hud_wintersim.map.toggle()
                 elif event.key == K_F4:
                     world.toggle_autonomous_autopilot()
                 elif event.key == K_F8:

@@ -78,7 +78,6 @@ class HUD_WINTERSIM(object):
         default_font = 'ubuntumono'
         mono = default_font if default_font in fonts else fonts[0]
         mono = pygame.font.match_font(mono)
-        self.is_map = False
         self.snow_amount_slider = Slider #sliders
         self.ice_slider = Slider
         self.temp_slider = Slider
