@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from carla import ColorConverter as cc
 import weakref
 import carla

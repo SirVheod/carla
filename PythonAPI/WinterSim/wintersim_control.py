@@ -86,10 +86,11 @@ import weakref
 import carla
 from carla import ColorConverter as cc
 
-from WinterSim import wintersim_hud, wintersim_sensors
-from wintersim_camera_manager import CameraManager
-from wintersim_camera_windows import CameraWindows
-from wintersim_keyboard_control import KeyboardControl
+import wintersim_hud
+import wintersim_sensors
+from WinterSim.wintersim_camera_manager import CameraManager
+from WinterSim.wintersim_camera_windows import CameraWindows
+from WinterSim.wintersim_keyboard_control import KeyboardControl
 
 try:
     import pygame
