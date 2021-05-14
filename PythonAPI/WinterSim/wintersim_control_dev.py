@@ -311,6 +311,9 @@ class World(object):
         self.hud_wintersim.render(display, self.world)
 
     def render_UI_sliders(self, world, client, hud_wintersim, display, weather):
+        if not hud_wintersim.is_hud or hud_wintersim.help_text.visible:
+            return
+
         if hud_wintersim.is_hud:
             for s in hud_wintersim.sliders:
                 if s.hit:

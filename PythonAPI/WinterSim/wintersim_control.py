@@ -338,6 +338,9 @@ class World(object):
             self.multiple_window_setup = False
     
     def render_UI_sliders(self, world, client, hud_wintersim, display, weather):
+        if not hud_wintersim.is_hud or hud_wintersim.help_text.visible:
+            return
+
         for s in hud_wintersim.sliders:
             if s.hit:
                 s.move()

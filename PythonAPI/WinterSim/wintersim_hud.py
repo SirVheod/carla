@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
 """
-Welcome to CARLA manual control.
-
 Use ARROWS or WASD keys for control.
 
     W            : throttle
