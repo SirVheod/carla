@@ -8,15 +8,11 @@ try:
     from pygame.locals import K_0
     from pygame.locals import K_9
     from pygame.locals import K_BACKQUOTE
-    from pygame.locals import K_BACKSPACE
     from pygame.locals import K_COMMA
     from pygame.locals import K_DOWN
     from pygame.locals import K_ESCAPE
     from pygame.locals import K_F1
-    from pygame.locals import K_F2
-    from pygame.locals import K_F4
     from pygame.locals import K_F8
-    from pygame.locals import K_F10
     from pygame.locals import K_F12
     from pygame.locals import K_LEFT
     from pygame.locals import K_PERIOD
@@ -90,8 +86,6 @@ class KeyboardControl(object):
                     return True
                 elif event.key == K_F1:
                     world.hud_wintersim.toggle_info(world)
-                elif event.key == K_F4:
-                    world.toggle_autonomous_autopilot()
                 elif event.key == K_F8:
                     world.detection = True
                     world.toggle_cv2_windows()
