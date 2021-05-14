@@ -342,6 +342,13 @@ class World(object):
         self.camera_manager.index = None
 
     def destroy(self):
+        if self.dataLidar is not None:
+            self.dataLidar.destroy()   
+
+        if self.data_thread is not None:
+            self.data_thread.pause()                                  
+            #self.data_thread.destroy()
+
         if self.radar_sensor is not None:
             self.toggle_radar()
         sensors = [
@@ -356,16 +363,6 @@ class World(object):
                 sensor.destroy()
         if self.player is not None:
             self.player.destroy()
-
-        if self.dataLidar is not None:
-            self.dataLidar.destroy()   
-
-        if self.data_thread is not None:
-            self.data_thread.pause()                                   
-            #self.data_thread.destroy()
-
-        if self.original_settings is not None:
-            client.get_world().apply_settings(self.original_settings)
 
         if self.cv2_windows is not None:
             self.cv2_windows.destroy()
@@ -426,6 +423,9 @@ def game_loop(args):
                 client.get_world().tick()
 
     finally:
+        if world.original_settings is not None:
+           client.get_world().apply_settings(world.original_settings)
+
         if world is not None:
             world.destroy()
 

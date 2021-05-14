@@ -649,7 +649,6 @@ def game_loop(args):
 
         world.autopilot = Autopilot(world)
  
-        
         while True:
 
             if world.render_lidar_detection:
