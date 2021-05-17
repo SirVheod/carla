@@ -116,6 +116,7 @@ class World(object):
 
         snow = obs.data[latest_tstep]["Muonio kirkonkylä"]["Snow depth"]['value']
         snow = 100 if snow > 100 else snow #lets set max number of snow to 1meter
+        snow = 0 if math.isnan(snow) else snow
         
         '''visibility = obs.data[latest_tstep]["Muonio kirkonkylä"]["Horizontal visibility"]['value'] #### this is commented because it was used as fog value, but its not usable for it
         visibility = 50000 if visibility > 50000 else visibility #for visibility 50000 is max
