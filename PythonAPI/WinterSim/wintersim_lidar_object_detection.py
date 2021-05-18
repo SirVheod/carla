@@ -21,6 +21,7 @@ class LidarObjectDetection(threading.Thread):
         self.state = threading.Condition()
         self.data = None
         self.lidar = None
+        self.latest_detections = None
 
     def run(self):
         self.pause()
@@ -36,8 +37,8 @@ class LidarObjectDetection(threading.Thread):
                 lidar_array = [[point[0], -point[1], point[2], 1.0] for point in points]
                 lidar_array = np.array(lidar_array).astype(np.float32).reshape(-1, 4)
                 if points.any() and len(points) > 0:
+                    #self.latest_detections = 
                     object_detection.detect(self.opt, self.model, lidar_array, self.tensor) # do the detection magick
-
 
     def pause(self):
         with self.state:

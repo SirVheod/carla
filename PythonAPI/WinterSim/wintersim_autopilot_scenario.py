@@ -322,7 +322,6 @@ class World(object):
 
     def toggle_lidar(self, world, client):
         ''' Toggle lidar render/detection'''
-
         if world.record_data and not world.render_lidar_detection:                  # Resumes to lidar object detection      
             world.data_thread.make_lidar(world.player, world)                       # If theres no lidar lets make a new one
             world.render_lidar_detection = True
@@ -647,7 +646,7 @@ def game_loop(args):
         world.settings.fixed_delta_seconds = 0.05
         world.settings.synchronous_mode = True
 
-        world.autopilot = Autopilot(world)
+        world.autopilot = Autopilot(world, world.data_thread)
  
         while True:
 

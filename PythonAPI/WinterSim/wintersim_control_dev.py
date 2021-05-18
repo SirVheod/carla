@@ -284,7 +284,6 @@ class World(object):
             world.render_lidar_detection = True
             client.get_world().apply_settings(world.settings)                       # apply custom settings
             world.data_thread.resume()                                              # resume object detection thread
-            print("helo?")
 
         if not world.record_data and world.render_lidar_detection:
             world.render_lidar_detection = False

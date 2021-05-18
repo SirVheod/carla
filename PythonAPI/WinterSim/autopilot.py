@@ -1,4 +1,3 @@
-from operator import truediv
 import carla
 import math
 
@@ -10,17 +9,15 @@ except ImportError:
 """
 Welcome to WinterSim CARLA Autopilot.
 Unlike Carla's own autopilot, 
-this autopilot relies purely on sensor(s) object detection information and maneuvers based on that information.
+this autopilot relies mostly on sensor(s) object detection information and maneuvers based on that information.
 """
 
-def get_actor_display_name(actor, truncate=250):
-    name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
-    return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
-
 class Autopilot(object):
-    def __init__(self, world):
+    def __init__(self, world, lidar):
         self.world = world
         self._control = carla.VehicleControl()
+        self.lidar_detection = lidar
+
         self.emergency_break = False
         self.vehicle_is_stopped = False
         self.vehicle_is_moving = False
@@ -40,14 +37,18 @@ class Autopilot(object):
         self.radar_detection_enabled = False
         self.radar_enabled = False
         self.max_autopilot_speed = 40
-        self.closest_distance_to_actor = 0
-        self.other_actors = False
+        self.closest_distance_to_actor = 100000
+        self.distances_to_actors = []
+        self.other_actors = False                   # other actors found from simulation
 
     def set_camera(self, cv2_windows):
         ''' Set camera detection'''
         self.cv2_windows = cv2_windows
         self.front_camera_enabled = True
-    
+
+    def set_lidar(self):
+        self.lidar_detection_enabled = True
+
     def parse_front_camera(self):
         ''' Parse front camera detection results'''
         if not self.front_camera_enabled:
@@ -62,23 +63,34 @@ class Autopilot(object):
                     # conf = int(confidence * 100)
                     if label == "car" or label == "truck":
                         self.vehicle_in_front = True
-                        #print("detected vehicle in front!")
 
+    def parse_lidar_data(self):
+        if not self.lidar_detection_enabled:
+            return
+
+        result = self.lidar_detection.get_latests_results()
+        if result is None:
+            print("none!")
+        else:
+            print("found lidar detections")
 
     def calculate_distance(self, world):
-        '''Calculate distance to other actors'''
+        '''Calculate distance to other actors
+        @Todo: this doesn't take into account if vehicle is in front or back!
+        '''
         t = world.player.get_transform()
         vehicles = world.world.get_actors().filter('vehicle.*')
         if len(vehicles) > 1:
+            self.distances_to_actors.clear()
             distance = lambda l: math.sqrt((l.x - t.location.x)**2 + (l.y - t.location.y)**2 + (l.z - t.location.z)**2)
             vehicles = [(distance(x.get_location()), x) for x in vehicles if x.id != world.player.id]
             for d, vehicle in sorted(vehicles, key=lambda vehicles: vehicles[0]):
                 if d > 200.0:
-                    break
-                #vehicle_type = get_actor_display_name(vehicle, truncate=22)
-                self.closest_distance_to_actor = d
+                    continue
                 self.other_actors = True
-                #print('% 4dm %s' % (d, vehicle_type))
+                self.distances_to_actors.append(d)
+                if d < self.closest_distance_to_actor:
+                    self.closest_distance_to_actor = d
         else:
             self.other_actors = False
             
@@ -93,25 +105,36 @@ class Autopilot(object):
         else:
             self.vehicle_is_moving = True
             self.vehicle_is_stopped = False
+            self.emergency_break = False
 
     def reset_parameters(self):
         ''' Reset parameters from last frame'''
         self.vehicle_in_front = False
-
+        self.closest_distance_to_actor = 10000
+        
     def tick_autopilot(self, clock):
         self.calculate_distance(self.world)
         self.calculate_vehicle_speed(self.world)
         self.parse_front_camera()
+        self.parse_lidar_data()
 
-        # check worst case first
+        # --- Check emergency break ---
+        if not self.emergency_break and self.closest_distance_to_actor < 5 and not self.vehicle_breaking:
+            print("emergency breaking activated!")
+            self.emergency_break = True
+
+        if self.closest_distance_to_actor < 15 and self.vehicle_speed > 40 and not self.vehicle_breaking:
+            print("emergency breaking activated!")
+            self.emergency_break = True
+
         if self.emergency_break:
             self._control.throttle = 0.0
             self._control.brake = min(self._control.brake + 0.2, 1)
             self.world.player.apply_control(self._control)
             self.reset_parameters()
             return
-
-
+        
+        # --- Check throttle and break ---
         if not self.vehicle_in_front:
             if self.vehicle_speed < self.max_autopilot_speed:
                 self._control.throttle = min(self._control.throttle + 0.03, 1)
@@ -121,16 +144,17 @@ class Autopilot(object):
                     self._control.throttle = 0
         else:
             if self.other_actors:
-                    if self.closest_distance_to_actor > 25.0:
-                        return # if distance to other actor over 25 m, don't break yet
+                    # if distance to other actor over 25 m, don't break yet
+                    if self.closest_distance_to_actor > 25.0:   
+                        return 
                     else:
                         self._control.brake = min(self._control.brake + 0.01, 1)
-
             else:
-                print("dist: ", self.closest_distance_to_actor)
+                # no other actors to be found..
+                #print("dist: ", self.closest_distance_to_actor)
                 self._control.throttle = 0.0
                 self._control.brake = min(self._control.brake + 0.2, 1)
-
+        
 
         self.world.player.apply_control(self._control)
         self.reset_parameters()

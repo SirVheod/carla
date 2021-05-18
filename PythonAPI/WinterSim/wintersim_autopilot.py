@@ -163,7 +163,6 @@ except ImportError:
 # -- Global functions ----------------------------------------------------------
 # ==============================================================================
 
-
 def find_weather_presets():
     rgx = re.compile('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)')
     name = lambda x: ' '.join(m.group(0) for m in rgx.finditer(x))
@@ -174,7 +173,6 @@ def get_actor_display_name(actor, truncate=250):
     name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
     return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
     
-
 # ==============================================================================
 # -- World ---------------------------------------------------------------------
 # ==============================================================================
@@ -335,7 +333,7 @@ class World(object):
 
         if not world.record_data and world.render_lidar_detection:
             world.render_lidar_detection = False
-            client.get_world().apply_settings(world.original_settings)              # set default settings
+            client.get_world().apply_settings(world.original_settings)
             world.data_thread.pause()                                               # pause object detection thread
             world.data_thread.destroy_lidar()
 
@@ -403,7 +401,6 @@ class World(object):
                 sensor.destroy()
         if self.player is not None:
             self.player.destroy()
-
 
 # ==============================================================================
 # -- Keyboard ---------------------------------------------------------------
@@ -651,7 +648,7 @@ def game_loop(args):
         world.settings.fixed_delta_seconds = 0.05
         world.settings.synchronous_mode = True
 
-        world.autopilot = Autopilot(world)
+        world.autopilot = Autopilot(world, world.data_thread)
  
         while True:
 
