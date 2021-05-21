@@ -299,9 +299,11 @@ class World(object):
     def toggle_radar(self):
         if self.radar_sensor is None:
             self.radar_sensor = wintersim_sensors.RadarSensor(self.player)
+            self.autopilot.set_radar(self.radar_sensor)
         elif self.radar_sensor.sensor is not None:
             self.radar_sensor.destroy_radar()
             self.radar_sensor = None
+            self.autopilot.set_radar(None)
            
     def tick(self, clock, hud_wintersim):
         self.hud_wintersim.tick(self, clock, hud_wintersim)
@@ -327,12 +329,14 @@ class World(object):
             world.render_lidar_detection = True
             client.get_world().apply_settings(world.settings)                       # apply custom settings
             world.data_thread.resume()                                              # resume object detection thread
+            self.autopilot.set_lidar(True)
 
         if not world.record_data and world.render_lidar_detection:
             world.render_lidar_detection = False
             client.get_world().apply_settings(world.original_settings)              # set default settings
             world.data_thread.pause()                                               # pause object detection thread
             world.data_thread.destroy_lidar()
+            self.autopilot.set_lidar(False)
 
     def toggle_autonomous_autopilot(self):
             self.wintersim_autopilot = not self.wintersim_autopilot
@@ -647,13 +651,17 @@ def game_loop(args):
         world.settings.synchronous_mode = True
 
         world.autopilot = Autopilot(world, world.data_thread)
+
+        game_world =  client.get_world()
  
         while True:
 
-            if world.render_lidar_detection:
-                clock.tick_busy_loop(20)
-            else:
-                clock.tick_busy_loop(20)
+            # if world.render_lidar_detection:
+            #     clock.tick_busy_loop(20)
+            # else:
+            #     clock.tick_busy_loop(20)
+
+            clock.tick_busy_loop(20)
 
             world.render_object_detection()
 
@@ -669,7 +677,7 @@ def game_loop(args):
             pygame.display.flip()
 
             if world.render_lidar_detection:
-                client.get_world().tick()
+                game_world.tick()
 
     finally:
         if world.dataLidar is not None:
