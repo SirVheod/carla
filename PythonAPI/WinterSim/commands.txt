@@ -45,7 +45,6 @@ python scenario_runner.py --openscenario /srunner\wintersim/training_vehicles_fr
 // single script launching both scenario runner and scenario
 python wintersim_scenario_runner.py --openscenario /srunner\wintersim/intersection_muonio.xosc --output
 
-
 python wintersim_scenario_runner.py --openscenario /srunner\wintersim/autopilot_test.xosc --output
 
 

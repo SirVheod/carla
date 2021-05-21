@@ -38,21 +38,21 @@ class Autopilot(object):
         self.detected_vehicle = False
         self.vehicle_in_front = False
         self.vehicle_behind = False
-        self.detected_pedestrian = False
         self.radar_data = None
         self.camera_windows = None
         self.frame_counter = 0
-        self.last_frame_vehicle_in_front = False
         self.front_camera_enabled = False
         self.back_camera_enabled = False
         self.max_autopilot_speed = 40
         self.closest_distance_to_actor = 100000
         self.distances_to_actors = []
         self.other_actors = False
+
         self.lidar_detected_vehicle_in_front  = False
         self.lidar_detected_vehicle_behind  = False
         self.lidar_detected_frame_counter = 0
         self.lidar_detection_enabled = False
+
         self.radar_detected_vehicle_in_front  = False
         self.radar_detected_vehicle_behind  = False
         self.radar_detected_frame_counter = 0
@@ -213,7 +213,7 @@ class Autopilot(object):
                 self._control.throttle = 0.0
                 self._control.brake = min(self._control.brake + 0.2, 1)
         
-    def tick_autopilot(self, clock):
+    def tick_autopilot(self):
         '''Tick autopilot'''
 
         self.calculate_distances_to_actors(self.world)

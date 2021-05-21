@@ -666,7 +666,7 @@ def game_loop(args):
             world.render_object_detection()
 
             if world.wintersim_autopilot:
-                world.autopilot.tick_autopilot(clock)
+                world.autopilot.tick_autopilot()
 
             if controller.parse_events(client, world, clock, hud_wintersim):
                return
