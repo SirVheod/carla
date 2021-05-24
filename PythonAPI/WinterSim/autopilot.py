@@ -18,9 +18,9 @@ and maneuvers based on that information.
 Distances to other actors are read from the simulation.
 
 TODO:
-- Better vehicle speed logic (currently vehicle accelerates unless speed is over max_autopilot_speed limit)
-- Read Road speed limit?
-- Get distances to detected object(s) from camera/lidar/radar?
+- Better vehicle speed logic, currently vehicle accelerates unless speed is over max_autopilot_speed limit
+- Read Road speed limit
+- Get distances to detected object(s) from camera/lidar/radar instead of reading from game world
 
 """
 
@@ -56,10 +56,11 @@ class Autopilot(object):
         self.radar_detected_vehicle_in_front  = False
         self.radar_detected_vehicle_behind  = False
         self.radar_detected_frame_counter = 0
-        self.radar_detection = None
+        self.radar_detection_enabled = None
 
         self.radar_detected_vehicle = False
         self.camera_detected_vehicle = False
+        self.front_camera_vehicle_detection_confidence = 0
 
     def set_camera(self, camera_windows):
         ''' Set camera detection'''
@@ -68,7 +69,7 @@ class Autopilot(object):
 
     def set_radar(self, radar):
         ''' Set radar detection'''
-        self.radar_detection = radar
+        self.radar_detection_enabled = radar
 
     def set_lidar(self, lidar):
         ''' Set lidar detection'''
@@ -76,19 +77,18 @@ class Autopilot(object):
 
     def parse_front_camera(self):
         ''' Parse front camera detection results'''
-        if not self.front_camera_enabled:
+        if not self.front_camera_enabled or self.camera_windows is None:
             return
 
-        if self.camera_windows is not None:
-            result = self.camera_windows.get_latests_results()
-            if result is not None:
-                for index in range(len(result)):
-                    label = result[index]['label']
-                    # confidence = result[index]['confidence']
-                    # conf = int(confidence * 100)
-                    if label == "car" or label == "truck":
-                        self.vehicle_in_front = True
-                        self.camera_detected_vehicle = True
+        result = self.camera_windows.get_latests_results()
+        if result is not None:
+            for index in range(len(result)):
+                label = result[index]['label']
+                if label == "car" or label == "truck":
+                    self.vehicle_in_front = True
+                    self.camera_detected_vehicle = True
+                    confidence = int(result[index]['confidence'] * 100)
+                    self.front_camera_vehicle_detection_confidence = confidence
 
     def parse_lidar_data(self):
         ''' Parse Lidar detection results'''
@@ -97,9 +97,6 @@ class Autopilot(object):
 
         self.lidar_detected_vehicle_in_front, self.lidar_detected_vehicle_behind = lidar_object_detection.get_latest_results()
 
-        # if self.lidar_detected_vehicle_behind:
-        #     print("detected vehicle behind!")
-
         if self.lidar_detected_vehicle_in_front:
             self.lidar_detected_frame_counter += 1
         else:
@@ -107,18 +104,18 @@ class Autopilot(object):
 
         if self.lidar_detected_frame_counter >= 3:
             # Lidar must have detected vehicle, 3 simulation frames in row or more
-            # this ensures if lidar detection has 'hiccups' it will be ignored
+            # this ensures that one frame detection which might be false positive is ignored
             #print("Detected vehicle in front with lidar!")
             self.vehicle_in_front = True
 
     def parse_radar_data(self):
         ''' Parse Radar detection results'''
-        if self.radar_detection is None:
+
+        if self.radar_detection_enabled is None:
             return
 
         self.radar_detected_vehicle_in_front = radar_object_detection.get_latest_results()
         radar_object_detection.reset()
-        #print(self.radar_detected_vehicle_in_front)
 
         if self.radar_detected_vehicle_in_front:
             self.radar_detected_frame_counter += 1
@@ -127,9 +124,9 @@ class Autopilot(object):
 
         if self.radar_detected_frame_counter >= 3:
             # Radar must have detected vehicle 3 simulation frames in row
-            # this ensures if ridar detection has 'hiccups' it will be ignored
+            # this ensures that one frame detection which might be false positive is ignored
             #print("Detected vehicle in front with radar!")
-            #self.radar_detected_vehicle = True
+            self.radar_detected_vehicle = True
             self.vehicle_in_front = True
 
     def calculate_distances_to_actors(self, world):
@@ -152,7 +149,6 @@ class Autopilot(object):
         else:
             self.other_actors = False
             
-
     def calculate_vehicle_speed(self, world):
         v = world.player.get_velocity()
         self.vehicle_speed = int(3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2))
@@ -174,6 +170,10 @@ class Autopilot(object):
 
     def check_emergency_break(self):
         '''Check emergency break'''
+
+        if self.vehicle_is_stopped:
+            return
+
         if not self.emergency_break and self.closest_distance_to_actor < 5 and not self.vehicle_breaking and not self.vehicle_is_stopped:
             self.emergency_break = True
 

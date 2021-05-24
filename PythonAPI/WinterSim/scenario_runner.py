@@ -376,7 +376,7 @@ class ScenarioRunner(object):
                                         ego_vehicles=self.ego_vehicles,
                                         config=config,
                                         config_file=self._args.openscenario,
-                                        timeout=100000)
+                                        timeout=60)
             elif self._args.route:
                 scenario = RouteScenario(world=self.world,
                                          config=config,

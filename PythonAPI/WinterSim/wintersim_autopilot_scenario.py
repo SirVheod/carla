@@ -9,48 +9,20 @@
 # Allows controlling a vehicle with a keyboard. For a simpler and more
 # documented example, please take a look at tutorial.py.
 
+
 """
 Welcome to CARLA WinterSim Autopilot.
-
-Use ARROWS or WASD keys for control.
-
-    W            : throttle
-    S            : brake
-    A/D          : steer left/right
-    Q            : toggle reverse
-    Space        : hand-brake
-    P            : toggle autopilot
-    M            : toggle manual transmission
-    ,/.          : gear up/down
-    CTRL + W     : toggle constant velocity mode at 60 km/h
-
-    L            : toggle next light type
-    SHIFT + L    : toggle high beam
-    Z/X          : toggle right/left blinker
-    I            : toggle interior light
-
-    TAB          : change sensor position
-    ` or N       : next sensor
-    [1-9]        : change to sensor [1-9]
-    G            : toggle radar visualization
-    C            : change weather (Shift+C reverse)
-    Backspace    : change vehicle
-
-    V            : Select next map layer (Shift+V reverse)
-    B            : Load current selected map layer (Shift+B to unload)
-
-    R            : toggle recording images to disk
-
-    CTRL + R     : toggle recording of simulation (replacing any previous)
-    CTRL + P     : start replaying last recorded simulation
-    CTRL + +     : increments the start time of the replay by 1 second (+SHIFT = 10 seconds)
-    CTRL + -     : decrements the start time of the replay by 1 second (+SHIFT = 10 seconds)
-
     F1           : toggle HUD
     F8           : toggle camera sensors with object detection
-    F9           : toggle camera sensors without object detection
-    F10          : toggle all sensors with object detection
+    F9           : toggle Lidar with object detection
+    F10          : toggle Radar sensors with object detection
+    F11          : toggle Lidar and Radar detection
+    F12          : toggle Server window rendering
+    O            : toggle Lidar detection
+    G            : toggle Radar detecton
     H/?          : toggle help
+    A            : start autopilot
+    TAB          : change camera angle
     ESC          : quit;
 """
 
@@ -118,9 +90,9 @@ try:
     from pygame.locals import K_F1
     from pygame.locals import K_F2
     from pygame.locals import K_F4
-    from pygame.locals import K_F8
     from pygame.locals import K_F9
     from pygame.locals import K_F10
+    from pygame.locals import K_F11
     from pygame.locals import K_F12
     from pygame.locals import K_LEFT
     from pygame.locals import K_PERIOD
@@ -158,11 +130,9 @@ try:
 except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
 
-
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
 # ==============================================================================
-
 
 def find_weather_presets():
     rgx = re.compile('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)')
@@ -174,7 +144,6 @@ def get_actor_display_name(actor, truncate=250):
     name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
     return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
     
-
 # ==============================================================================
 # -- World ---------------------------------------------------------------------
 # ==============================================================================
@@ -403,7 +372,6 @@ class World(object):
         if self.player is not None:
             self.player.destroy()
 
-
 # ==============================================================================
 # -- Keyboard ---------------------------------------------------------------
 # ==============================================================================
@@ -428,18 +396,18 @@ class KeyboardControl(object):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return True
-            elif event.type == pygame.MOUSEBUTTONDOWN: #slider event
+            elif event.type == pygame.MOUSEBUTTONDOWN:              # slider event
                 if world.hud_wintersim.is_hud:
                     pos = pygame.mouse.get_pos()
                     for slider in hud_wintersim.sliders:
-                        if slider.button_rect.collidepoint(pos): #get slider what mouse is touching
-                            slider.hit = True #slider is being moved
-            elif event.type == pygame.MOUSEBUTTONUP: #slider event
+                        if slider.button_rect.collidepoint(pos):    # get slider what mouse is touching
+                            slider.hit = True                       # slider is being moved
+            elif event.type == pygame.MOUSEBUTTONUP:                # slider event
                 if world.hud_wintersim.is_hud:
-                    if hud_wintersim.ice_slider.hit: #if road iciness is updated
+                    if hud_wintersim.ice_slider.hit:                # if road iciness is updated
                         world.update_friction(hud_wintersim.ice_slider.val)
                     for slider in hud_wintersim.sliders:
-                        slider.hit = False #slider moving stopped
+                        slider.hit = False                          # slider moving stopped
             elif event.type == pygame.KEYUP:
                 if self._is_quit_shortcut(event.key):
                     return True
@@ -449,9 +417,6 @@ class KeyboardControl(object):
                     world.hud_wintersim.map.toggle()
                 elif event.key == K_F4:
                     world.toggle_autonomous_autopilot()
-                elif event.key == K_F8:
-                    world.detection = True
-                    world.toggle_cv2_windows()
                 elif event.key == K_F9:
                     world.detection = False
                     world.toggle_cv2_windows()
@@ -461,14 +426,15 @@ class KeyboardControl(object):
                     world.toggle_radar()
                     world.record_data = not world.record_data
                     world.toggle_lidar(world, client)
-
+                elif event.key == K_F11:
+                    world.toggle_radar()
+                    world.record_data = not world.record_data
+                    world.toggle_lidar(world, client)
                 elif event.key == K_F12:
-                    # toggle server rendering
                     game_world = client.get_world()
                     settings = game_world.get_settings()
-                    settings.no_rendering_mode = not settings.no_rendering_mode
+                    settings.no_rendering_mode = not settings.no_rendering_mode # toggle server rendering
                     game_world.apply_settings(settings)
-
                 elif event.key == K_a:
                     world.wintersim_autopilot = not world.wintersim_autopilot
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
@@ -489,10 +455,10 @@ class KeyboardControl(object):
                     world.next_weather()
                 elif event.key == K_g:
                     world.toggle_radar()
-                elif event.key == K_BACKQUOTE:
-                    world.camera_manager.next_sensor()
-                elif event.key == K_n:
-                    world.camera_manager.next_sensor()
+                # elif event.key == K_BACKQUOTE:
+                #     world.camera_manager.next_sensor()
+                # elif event.key == K_n:
+                #     world.camera_manager.next_sensor()
                 elif event.key == K_o:
                     world.record_data = not world.record_data
                     world.toggle_lidar(world, client)
@@ -505,8 +471,8 @@ class KeyboardControl(object):
                         world.player.enable_constant_velocity(carla.Vector3D(17, 0, 0))
                         world.constant_velocity_enabled = True
                         world.hud_wintersim.notification("Enabled Constant Velocity Mode at 60 km/h")
-                elif event.key > K_0 and event.key <= K_9:
-                    world.camera_manager.set_sensor(event.key - 1 - K_0)
+                # elif event.key > K_0 and event.key <= K_9:
+                #     world.camera_manager.set_sensor(event.key - 1 - K_0)
                 elif event.key == K_r and not (pygame.key.get_mods() & KMOD_CTRL):
                     world.camera_manager.toggle_recording()
                 elif event.key == K_r and (pygame.key.get_mods() & KMOD_CTRL):
@@ -519,17 +485,13 @@ class KeyboardControl(object):
                         world.recording_enabled = True
                         world.hud_wintersim.notification("Recorder is ON")
                 elif event.key == K_p and (pygame.key.get_mods() & KMOD_CTRL):
-                    # stop recorder
                     client.stop_recorder()
                     world.recording_enabled = False
-                    # work around to fix camera at start of replaying
                     current_index = world.camera_manager.index
                     world.destroy_sensors()
-                    # disable autopilot
                     self._autopilot_enabled = False
                     world.player.set_autopilot(self._autopilot_enabled)
                     world.hud_wintersim.notification("Replaying file 'manual_recording.rec'")
-                    # replayer
                     client.replay_file("manual_recording.rec", world.recording_start, 0, 0)
                     world.camera_manager.set_sensor(current_index)
                 elif event.key == K_MINUS and (pygame.key.get_mods() & KMOD_CTRL):
@@ -544,50 +506,48 @@ class KeyboardControl(object):
                     else:
                         world.recording_start += 1
                     world.hud_wintersim.notification("Recording start time is %d" % (world.recording_start))
-                if isinstance(self._control, carla.VehicleControl):
-                    if event.key == K_q:
-                        self._control.gear = 1 if self._control.reverse else -1
-                    elif event.key == K_m:
-                        self._control.manual_gear_shift = not self._control.manual_gear_shift
-                        self._control.gear = world.player.get_control().gear
-                        world.hud_wintersim.notification('%s Transmission' %
-                                               ('Manual' if self._control.manual_gear_shift else 'Automatic'))
-                    elif self._control.manual_gear_shift and event.key == K_COMMA:
-                        self._control.gear = max(-1, self._control.gear - 1)
-                    elif self._control.manual_gear_shift and event.key == K_PERIOD:
-                        self._control.gear = self._control.gear + 1
-                    elif event.key == K_p and not pygame.key.get_mods() & KMOD_CTRL:
-                        self._autopilot_enabled = not self._autopilot_enabled
-                        world.player.set_autopilot(self._autopilot_enabled)
-                        world.hud_wintersim.notification(
-                            'Autopilot %s' % ('On' if self._autopilot_enabled else 'Off'))
-                    elif event.key == K_l and pygame.key.get_mods() & KMOD_CTRL:
-                        current_lights ^= carla.VehicleLightState.Special1
-                    elif event.key == K_l and pygame.key.get_mods() & KMOD_SHIFT:
-                        current_lights ^= carla.VehicleLightState.HighBeam
-                    elif event.key == K_l:
-                        # Use 'L' key to switch between lights:
-                        # closed -> position -> low beam -> fog
-                        if not self._lights & carla.VehicleLightState.Position:
-                            world.hud_wintersim.notification("Position lights")
-                            current_lights |= carla.VehicleLightState.Position
-                        else:
-                            world.hud_wintersim.notification("Low beam lights")
-                            current_lights |= carla.VehicleLightState.LowBeam
-                        if self._lights & carla.VehicleLightState.LowBeam:
-                            world.hud_wintersim.notification("Fog lights")
-                            current_lights |= carla.VehicleLightState.Fog
-                        if self._lights & carla.VehicleLightState.Fog:
-                            world.hud_wintersim.notification("Lights off")
-                            current_lights ^= carla.VehicleLightState.Position
-                            current_lights ^= carla.VehicleLightState.LowBeam
-                            current_lights ^= carla.VehicleLightState.Fog
-                    elif event.key == K_i:
-                        current_lights ^= carla.VehicleLightState.Interior
-                    elif event.key == K_z:
-                        current_lights ^= carla.VehicleLightState.LeftBlinker
-                    elif event.key == K_x:
-                        current_lights ^= carla.VehicleLightState.RightBlinker
+                # if isinstance(self._control, carla.VehicleControl):
+                    # if event.key == K_q:
+                    #     self._control.gear = 1 if self._control.reverse else -1
+                    # elif event.key == K_m:
+                    #     self._control.manual_gear_shift = not self._control.manual_gear_shift
+                    #     self._control.gear = world.player.get_control().gear
+                    #     world.hud_wintersim.notification('%s Transmission' %('Manual' if self._control.manual_gear_shift else 'Automatic'))
+                    # if self._control.manual_gear_shift and event.key == K_COMMA:
+                    #     self._control.gear = max(-1, self._control.gear - 1)
+                    # elif self._control.manual_gear_shift and event.key == K_PERIOD:
+                    #     self._control.gear = self._control.gear + 1
+                    # if event.key == K_p and not pygame.key.get_mods() & KMOD_CTRL:
+                    #     self._autopilot_enabled = not self._autopilot_enabled
+                    #     world.player.set_autopilot(self._autopilot_enabled)
+                    #     world.hud_wintersim.notification('Autopilot %s' % ('On' if self._autopilot_enabled else 'Off'))
+                    # elif event.key == K_l and pygame.key.get_mods() & KMOD_CTRL:
+                    #     current_lights ^= carla.VehicleLightState.Special1
+                    # elif event.key == K_l and pygame.key.get_mods() & KMOD_SHIFT:
+                    #     current_lights ^= carla.VehicleLightState.HighBeam
+                    # elif event.key == K_l:
+                    #     # Use 'L' key to switch between lights:
+                    #     # closed -> position -> low beam -> fog
+                    #     if not self._lights & carla.VehicleLightState.Position:
+                    #         world.hud_wintersim.notification("Position lights")
+                    #         current_lights |= carla.VehicleLightState.Position
+                    #     else:
+                    #         world.hud_wintersim.notification("Low beam lights")
+                    #         current_lights |= carla.VehicleLightState.LowBeam
+                    #     if self._lights & carla.VehicleLightState.LowBeam:
+                    #         world.hud_wintersim.notification("Fog lights")
+                    #         current_lights |= carla.VehicleLightState.Fog
+                    #     if self._lights & carla.VehicleLightState.Fog:
+                    #         world.hud_wintersim.notification("Lights off")
+                    #         current_lights ^= carla.VehicleLightState.Position
+                    #         current_lights ^= carla.VehicleLightState.LowBeam
+                    #         current_lights ^= carla.VehicleLightState.Fog
+                    # elif event.key == K_i:
+                    #     current_lights ^= carla.VehicleLightState.Interior
+                    # elif event.key == K_z:
+                    #     current_lights ^= carla.VehicleLightState.LeftBlinker
+                    # elif event.key == K_x:
+                    #     current_lights ^= carla.VehicleLightState.RightBlinker
 
         # if not self._autopilot_enabled or not self.wintersim_autopilot:
         #     if isinstance(self._control, carla.VehicleControl):
@@ -653,15 +613,9 @@ def game_loop(args):
         world.autopilot = Autopilot(world, world.data_thread)
 
         game_world =  client.get_world()
- 
+
         while True:
-
-            # if world.render_lidar_detection:
-            #     clock.tick_busy_loop(20)
-            # else:
-            #     clock.tick_busy_loop(20)
-
-            clock.tick_busy_loop(20)
+            clock.tick_busy_loop(20)        # limit both server and client to 20 fps
 
             world.render_object_detection()
 
@@ -685,7 +639,6 @@ def game_loop(args):
 
         if world.data_thread is not None:    
             world.data_thread.pause()                                       
-            #world.data_thread.destroy()
 
         if world.original_settings is not None:
             client.get_world().apply_settings(world.original_settings)

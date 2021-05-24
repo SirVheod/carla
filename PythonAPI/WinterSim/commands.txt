@@ -48,8 +48,10 @@ python wintersim_scenario_runner.py --openscenario /srunner\wintersim/intersecti
 python wintersim_scenario_runner.py --openscenario /srunner\wintersim/autopilot_test.xosc --output
 
 
+--- vehicle testing ---
 python scenario_runner.py --openscenario /srunner\wintersim/autopilot_test.xosc --output
 
+python scenario_runner.py --openscenario /srunner\wintersim/autopilot_test_muonio.xosc --output
 
 
 

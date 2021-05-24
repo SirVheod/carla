@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <OpenSCENARIO>
-  <FileHeader revMajor="1" revMinor="0" date="2021-04-15T12:00:00" description="WinterSim:Autopilot_test_town03" author="AN"/>
+  <FileHeader revMajor="1" revMinor="0" date="2021-04-15T12:00:00" description="WinterSim:Autopilot_muonio_tester" author="AN"/>
   <ParameterDeclarations/>
   <CatalogLocations/>
   <RoadNetwork>
-     <LogicFile filepath="Town03"/>
+     <LogicFile filepath="/Game/Carla/Maps/Muonio/Muonio20052021"/>
     <SceneGraphFile filepath=""/>
   </RoadNetwork>
   <Entities>
@@ -63,7 +63,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="140.6" y="-5.4" z="0" h="0"/>
+                <WorldPosition x="42.6" y="156.0" z="238" h="-89.77"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
@@ -91,7 +91,7 @@
           <PrivateAction>
             <TeleportAction>
               <Position>
-                <WorldPosition x="208.6" y="-6.0" z="0" h="0"/>
+                <WorldPosition x="15.8" y="44.1" z="238" h="-89.8"/>
               </Position>
             </TeleportAction>
           </PrivateAction>
