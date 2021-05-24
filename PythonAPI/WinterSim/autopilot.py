@@ -81,15 +81,16 @@ class Autopilot(object):
         if result is None:
             return
 
+        # TODO this is quite slow way of checking, perhaps we should change strings --> int
         for index in range(len(result)):
             label = result[index]['label']
-            if label == "car" or label == "truck":
+            if label == "car" or label == "truck": 
                 self.vehicle_in_front = True
                 confidence = int(result[index]['confidence'] * 100)
                 self.front_camera_vehicle_detection_confidence = confidence
 
     def parse_lidar_data(self):
-        '''Parse Lidar detection results'''
+        '''Parse lidar detection results'''
         if not self.lidar_detection_enabled:
             return
 
@@ -107,7 +108,7 @@ class Autopilot(object):
             self.vehicle_in_front = True
 
     def parse_radar_data(self):
-        '''Parse Radar detection results'''
+        '''Parse radar detection results'''
 
         if self.radar_detection_enabled is None:
             return
@@ -128,7 +129,11 @@ class Autopilot(object):
 
     def calculate_distances_to_actors(self, world):
         '''Calculate distance to other actors
-        @Todo: this doesn't take into account if vehicle is in front or back!
+
+        TODO:
+        this doesn't take into account if vehicle is in front or back.
+        So in scenario where vehicle behind gets close,
+        this script might think you are about to crash and starts to break..
         '''
         t = world.player.get_transform()
         vehicles = world.world.get_actors().filter('vehicle.*')
@@ -185,10 +190,11 @@ class Autopilot(object):
             return
 
     def handle_throttle(self):
+        '''Handle vehicle throttling or breaking'''
+
         if self.emergency_break:
             return
 
-        #print(self.vehicle_in_front)
         if not self.vehicle_in_front:
             if self.vehicle_speed < self.max_autopilot_speed:
                 self._control.throttle = min(self._control.throttle + 0.03, 1)
@@ -204,13 +210,11 @@ class Autopilot(object):
                     else:
                         self._control.brake = min(self._control.brake + 0.01, 1)
             else:
-                # no other actors to be found..
-                #print("dist: ", self.closest_distance_to_actor)
                 self._control.throttle = 0.0
                 self._control.brake = min(self._control.brake + 0.2, 1)
         
     def tick_autopilot(self):
-        '''Tick autopilot'''
+        '''Tick autopilot. Call this only once per simulation frame!'''
 
         self.calculate_distances_to_actors(self.world)
         self.calculate_vehicle_speed(self.world)
