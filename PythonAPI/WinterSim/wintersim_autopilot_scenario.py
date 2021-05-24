@@ -13,13 +13,14 @@
 """
 Welcome to CARLA WinterSim Autopilot.
     F1           : toggle HUD
-    F8           : toggle camera sensors with object detection
-    F9           : toggle Lidar with object detection
-    F10          : toggle Radar sensors with object detection
-    F11          : toggle Lidar and Radar detection
-    F12          : toggle Server window rendering
+
+    F8           : toggle camera sensor(s) with object detection
     O            : toggle Lidar detection
     G            : toggle Radar detecton
+    F11          : toggle all sensor detections
+    
+
+    F12          : toggle Server window rendering
     H/?          : toggle help
     A            : start autopilot
     TAB          : change camera angle
@@ -90,8 +91,7 @@ try:
     from pygame.locals import K_F1
     from pygame.locals import K_F2
     from pygame.locals import K_F4
-    from pygame.locals import K_F9
-    from pygame.locals import K_F10
+    from pygame.locals import K_F8
     from pygame.locals import K_F11
     from pygame.locals import K_F12
     from pygame.locals import K_LEFT
@@ -417,19 +417,20 @@ class KeyboardControl(object):
                     world.hud_wintersim.map.toggle()
                 elif event.key == K_F4:
                     world.toggle_autonomous_autopilot()
-                elif event.key == K_F9:
-                    world.detection = False
-                    world.toggle_cv2_windows()
-                elif event.key == K_F10:
+                elif event.key == K_F8:
                     world.detection = True
                     world.toggle_cv2_windows()
-                    world.toggle_radar()
-                    world.record_data = not world.record_data
-                    world.toggle_lidar(world, client)
+                # elif event.key == K_F9:
+                #     world.record_data = not world.record_data
+                #     world.toggle_lidar(world, client)
+                # elif event.key == K_F10:
+                #     world.toggle_radar()
                 elif event.key == K_F11:
                     world.toggle_radar()
                     world.record_data = not world.record_data
                     world.toggle_lidar(world, client)
+                    #world.detection = True
+                    world.toggle_cv2_windows()
                 elif event.key == K_F12:
                     game_world = client.get_world()
                     settings = game_world.get_settings()
