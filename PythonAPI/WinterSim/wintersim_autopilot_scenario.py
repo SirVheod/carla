@@ -326,14 +326,16 @@ class World(object):
         self.hud_wintersim.render(display, self.world)
 
     def render_UI_sliders(self, world, client, hud_wintersim, display, weather):
-        if hud_wintersim.is_hud:
-            for s in hud_wintersim.sliders:
-                if s.hit:
-                    s.move()
-                    weather.tick(hud_wintersim, world.preset[0])
-                    client.get_world().set_weather(weather.weather)
-            for s in hud_wintersim.sliders:
-                s.draw(display, s)
+        if not hud_wintersim.is_hud:
+            return
+
+        for s in hud_wintersim.sliders:
+            if s.hit:
+                s.move()
+                weather.tick(hud_wintersim, world.preset[0])
+                client.get_world().set_weather(weather.weather)
+        for s in hud_wintersim.sliders:
+            s.draw(display, s)
 
     def update_friction(self, iciness):
         actors = self.world.get_actors()
@@ -429,7 +431,6 @@ class KeyboardControl(object):
                     world.toggle_radar()
                     world.record_data = not world.record_data
                     world.toggle_lidar(world, client)
-                    #world.detection = True
                     world.toggle_cv2_windows()
                 elif event.key == K_F12:
                     game_world = client.get_world()
@@ -627,8 +628,8 @@ def game_loop(args):
                return
 
             world.tick(clock, hud_wintersim)
-            world.render(display)
             world.render_UI_sliders(world, client, hud_wintersim, display, weather)
+            world.render(display)
             pygame.display.flip()
 
             if world.render_lidar_detection:
