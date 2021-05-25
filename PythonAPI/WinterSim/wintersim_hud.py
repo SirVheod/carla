@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# Copyright (c) 2021 FrostBit Software Lab
+
+# This work is licensed under the terms of the MIT license.
+# For a copy, see <https://opensource.org/licenses/MIT>.
+
 """
 Use ARROWS or WASD keys for control.
 
@@ -37,7 +42,7 @@ Use ARROWS or WASD keys for control.
 
 
     F1           : toggle HUD
-    F8           : Spawn  separate front and back camera windows
+    F8           : spawn  separate front and back RGB camera windows
     H/?          : toggle help
     ESC          : quit;
 """
@@ -46,7 +51,6 @@ import glob
 import os
 import sys
 import re
-import threading
 import time
 import numpy as np
 
@@ -95,7 +99,6 @@ class HUD_WINTERSIM(object):
         self.is_hud = True
         self._info_text = []
         self._server_clock = pygame.time.Clock()
-
         self.logo = pygame.image.load('WinterSim_White_Color.png')
         self.logo = pygame.transform.scale(self.logo, (262,61))
         self.logo_rect = self.logo.get_rect()

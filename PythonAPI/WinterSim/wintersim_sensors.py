@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-"""
-Wintersim sensors class
-"""
+
+# Copyright (c) 2021 FrostBit Software Lab
+
+# This work is licensed under the terms of the MIT license.
+# For a copy, see <https://opensource.org/licenses/MIT>.
 
 # ==============================================================================
 # -- imports -------------------------------------------------------------------
@@ -9,13 +11,9 @@ Wintersim sensors class
 
 import glob
 import os
-import re
 import sys
-import threading
-import time
 from queue import Queue
 import numpy as np
-import torch
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -215,4 +213,4 @@ class RadarSensor(object):
                 size=0.075,
                 life_time=0.06,
                 persistent_lines=False,
-                color=carla.Color(r, g, b))               # clear points array
+                color=carla.Color(r, g, b))
