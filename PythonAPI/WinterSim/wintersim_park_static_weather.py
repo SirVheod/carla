@@ -120,7 +120,6 @@ def lidar_callback(point_cloud, point_list, main):
     ##record data
     if main.record is True:
         point_cloud.save_to_disk('pointclouds/robosense_pointclouds/%.6d.ply' % point_cloud.frame)
-        main.record = False
 
 
 def generate_lidar_bp(arg, blueprint_library, delta, is_ouster):
@@ -141,6 +140,7 @@ def generate_lidar_bp(arg, blueprint_library, delta, is_ouster):
     else:
         lidar_bp.set_attribute('upper_fov', str(arg.upper_fov))
         lidar_bp.set_attribute('lower_fov', str(arg.lower_fov))
+        lidar_bp.set_attribute('horizontal_fov', str(158))
         lidar_bp.set_attribute('channels', str(arg.channels))
         lidar_bp.set_attribute('range', str(arg.range))
         lidar_bp.set_attribute('rotation_frequency', str(1.0 / delta))
@@ -223,6 +223,7 @@ class RadarSensor(object):
 class main(object):
     def __init__(self, args):
         self.record = False
+        self.timestart = 0
         self.f(args)
 
     def change(self):
@@ -231,7 +232,7 @@ class main(object):
     """Main function of the script"""
     def f(self, arg):
         client = carla.Client(arg.host, arg.port)
-        client.set_timeout(2.0)
+        client.set_timeout(5.0)
         world = client.get_world()
 
         try:
@@ -280,6 +281,15 @@ class main(object):
             input_thread = Input(self)
             input_thread.start()
             while True:
+                if self.record:
+                    ##start 10 second timer
+                    if self.timestart is 0:
+                        self.timestart = time.time() + 10
+                    if time.time() >= self.timestart and self.timestart is not 0:
+                        print('PointCloud data saved to pointclouds/robosense_pointclouds/')
+                        self.record = False
+                        self.timestart = 0
+                    
                 if frame == 2:
                     vis.add_geometry(point_list)
                 vis.update_geometry(point_list)
@@ -312,9 +322,12 @@ class Input(threading.Thread):
     def run(self):
         while True:
             ##Get input for recordin
-            self.input = input('Press enter to save a single PointCloud')
-            print('PointCloud data saved to pointclouds/robosense_pointclouds/')
-            self.main.record = True
+            if self.main.record is not True:
+                print('')
+                self.input = input('Press enter to save 10 seconds of a PointCloud data')
+                print('Started recording...')
+                self.main.record = True
+            time.sleep(3)
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
