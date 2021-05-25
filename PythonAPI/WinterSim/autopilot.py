@@ -1,3 +1,4 @@
+from re import S
 import carla
 import math
 
@@ -57,6 +58,8 @@ class Autopilot(object):
         self.front_camera_enabled = False
         self.back_camera_enabled = False
         self.camera_windows = None
+        
+        self.frame_counter = 0
 
     def set_camera(self, camera_windows):
         '''Set camera detection'''
@@ -95,6 +98,7 @@ class Autopilot(object):
             return
 
         self.lidar_detected_vehicle_in_front, self.lidar_detected_vehicle_behind = lidar_object_detection.get_latest_results()
+        lidar_object_detection.reset()
 
         if self.lidar_detected_vehicle_in_front:
             self.lidar_detected_frame_counter += 1
@@ -104,7 +108,7 @@ class Autopilot(object):
         if self.lidar_detected_frame_counter >= 3:
             # Lidar must have detected vehicle, 3 simulation frames in row or more
             # this ensures that one frame detection which might be false positive is ignored
-            print("Detected vehicle in front with lidar!")
+            #print("Detected vehicle in front with lidar!")
             self.vehicle_in_front = True
 
     def parse_radar_data(self):
@@ -227,3 +231,5 @@ class Autopilot(object):
     
         self.world.player.apply_control(self._control)
         self.reset_parameters()
+        
+        self.frame_counter += 1

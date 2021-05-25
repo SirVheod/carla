@@ -67,6 +67,14 @@ def detect_and_draw(opt, model, bev_maps, Tensor, is_front=True):
                     global detected_vehicle_back
                     detected_vehicle_back = True
 
+            if cls_pred == 1:
+                if is_front:
+                    global detected_walker_in_front
+                    detected_walker_in_front = True
+                else:
+                    global detected_walker_back
+                    detected_walker_back = True
+
     return display_bev
 
 def detect(opt, model, lidar_array, Tensor):
@@ -94,6 +102,11 @@ def destroy_window():
 def get_latest_results():
     global detected_vehicle_in_front, detected_vehicle_back
     return detected_vehicle_in_front, detected_vehicle_back
+
+def reset():
+    global detected_vehicle_in_front, detected_vehicle_back
+    detected_vehicle_in_front = False
+    detected_vehicle_back = False
 
 def main():
     parser = argparse.ArgumentParser()
