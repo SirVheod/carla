@@ -104,7 +104,7 @@ class Autopilot(object):
         if self.lidar_detected_frame_counter >= 3:
             # Lidar must have detected vehicle, 3 simulation frames in row or more
             # this ensures that one frame detection which might be false positive is ignored
-            #print("Detected vehicle in front with lidar!")
+            print("Detected vehicle in front with lidar!")
             self.vehicle_in_front = True
 
     def parse_radar_data(self):

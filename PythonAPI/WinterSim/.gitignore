@@ -11,6 +11,7 @@ srunner/utilities/__pycache__/
 **/darkflow
 **/darkflow.egg-info/*
 **/config
+**/object_detection/checkpoints
 flow*
 results*.txt
 label*.txt

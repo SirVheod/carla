@@ -48,15 +48,4 @@ _site
 core
 profiler.csv
 
-
-**/PythonAPI/WinterSim/cfg
-**/PythonAPI/WinterSim/darkflow
-**/PythonAPI/WinterSim/data_collector
-**/PythonAPI/WinterSim/object_detection
-**/PythonAPI/WinterSim/darkflow.egg-info
-**/PythonAPI/WinterSim/config
-**/PythonAPI/WinterSim/flow*
-**/PythonAPI/WinterSim/setup*
-**/PythonAPI/WinterSim/label*
-**/PythonAPI/WinterSim/test
-**/PythonAPI/WinterSim/*.avi
+**/PythonAPI/WinterSim/object_detection/checkpoints

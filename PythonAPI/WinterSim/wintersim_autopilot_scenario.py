@@ -628,8 +628,8 @@ def game_loop(args):
                return
 
             world.tick(clock, hud_wintersim)
-            world.render_UI_sliders(world, client, hud_wintersim, display, weather)
             world.render(display)
+            world.render_UI_sliders(world, client, hud_wintersim, display, weather)
             pygame.display.flip()
 
             if world.render_lidar_detection:

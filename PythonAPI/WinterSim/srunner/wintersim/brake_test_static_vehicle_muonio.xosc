@@ -4,7 +4,7 @@
   <ParameterDeclarations/>
   <CatalogLocations/>
   <RoadNetwork>
-    <LogicFile filepath="/Game/Carla/Maps/Muonio/Muonio18521"/>
+    <LogicFile filepath="/Game/Carla/ExportedMaps/Muonio_10032021"/>
     <SceneGraphFile filepath=""/>
   </RoadNetwork>
   <Entities>
