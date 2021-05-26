@@ -249,27 +249,34 @@ class World(object):
             self.world.load_map_layer(selected)
 
     def tick(self, clock, hud_wintersim):
+        '''Tick WinterSim hud'''
         self.hud_wintersim.tick(self, clock, hud_wintersim)
 
-    def render_object_detection(self):
-        '''Render other camera windows'''
+    def render_camera_windows(self):
+        '''Render camera windows if enabled'''
+        if not self.multiple_windows_enabled:
+            return
+
         if self.multiple_windows_enabled and self.multiple_window_setup:
             self.cv2_windows.resume()
 
-        if self.multiple_window_setup == False and self.multiple_windows_enabled:
+        if not self.multiple_window_setup and self.multiple_windows_enabled:
             self.cv2_windows = CameraWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
             self.multiple_window_setup = True
             self.cv2_windows.start()
             self.cv2_windows.pause()
 
-    def block_object_detection(self):
-        '''if multiplewindows enabled, disable MultipleWindows thread flag'''
+    def block_camera_windows_thread(self):
+        '''if camera windows enabled, you can block CameraWindows thread flag'''
         if self.multiple_windows_enabled and self.cv2_windows is not None:
             self.cv2_windows.pause()
 
-    def render(self, display):
+    def render(self, world, client, hud_wintersim, display, weather):
+        '''Render everything to screen'''
+        self.render_camera_windows()
         self.camera_manager.render(display)
-        self.hud_wintersim.render(display, self.world)
+        self.hud_wintersim.render(display, world)
+        self.render_sliders(world, client, hud_wintersim, display, weather)
 
     def toggle_cv2_windows(self):
         self.multiple_windows_enabled = not self.multiple_windows_enabled
@@ -277,7 +284,7 @@ class World(object):
             self.cv2_windows.destroy()
             self.multiple_window_setup = False
     
-    def render_UI_sliders(self, world, client, hud_wintersim, display, weather):
+    def render_sliders(self, world, client, hud_wintersim, display, weather):
         if not hud_wintersim.is_hud or hud_wintersim.help_text.visible:
             return
 
@@ -288,6 +295,7 @@ class World(object):
                 client.get_world().set_weather(weather.weather)
         for s in hud_wintersim.sliders:
             s.draw(display, s)
+
     def toggle_radar(self):
         if self.radar_sensor is None:
             self.radar_sensor = wintersim_sensors.RadarSensor(self.player)
@@ -365,12 +373,10 @@ def game_loop(args):
 
         while True:
             clock.tick_busy_loop(60)
-            world.render_object_detection()
             if controller.parse_events(client, world, clock, hud_wintersim):
                 return
             world.tick(clock, hud_wintersim)
-            world.render(display)
-            world.render_UI_sliders(world, client, hud_wintersim, display, weather)
+            world.render(world, client, hud_wintersim, display, weather)
             pygame.display.flip()
 
     finally:
@@ -452,7 +458,6 @@ def main():
         game_loop(args)
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
-
 
 if __name__ == '__main__':
     main()

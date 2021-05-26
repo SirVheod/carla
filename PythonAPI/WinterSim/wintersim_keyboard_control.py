@@ -94,7 +94,6 @@ class KeyboardControl(object):
                 elif event.key == K_F1:
                     world.hud_wintersim.toggle_info(world)
                 elif event.key == K_F8:
-                    world.detection = True
                     world.toggle_cv2_windows()
                 elif event.key == K_F12:
                     game_world = client.get_world()                 # toggle server rendering

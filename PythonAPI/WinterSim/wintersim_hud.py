@@ -197,7 +197,7 @@ class HUD_WINTERSIM(object):
                     break
                 vehicle_type = wintersim_control.get_actor_display_name(vehicle, truncate=22)
                 self._info_text.append('% 4dm %s' % (d, vehicle_type))
-
+                
     def toggle_info(self, world):
         if self.is_hud:
             if self.help_text.visible:
