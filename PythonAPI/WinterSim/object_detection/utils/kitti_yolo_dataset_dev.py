@@ -18,7 +18,7 @@ def resize(image, size):
 
 class KittiYOLODataset(KittiDataset):
 
-    def __init__(self, root_dir, split='train', mode ='TRAIN', folder=None, data_aug=True, multiscale=False):
+    def __init__(self, root_dir, data, split='train', mode ='TRAIN', folder=None, data_aug=True, multiscale=False):
         super().__init__(root_dir=root_dir, split=split, folder=folder)
 
         self.split = split
@@ -29,6 +29,7 @@ class KittiYOLODataset(KittiDataset):
         self.min_size = self.img_size - 3 * 32
         self.max_size = self.img_size + 3 * 32
         self.batch_count = 0
+        self.points = data
 
         assert mode in ['TRAIN', 'EVAL', 'TEST'], 'Invalid mode: %s' % mode
         self.mode = mode
@@ -38,10 +39,10 @@ class KittiYOLODataset(KittiDataset):
         if mode == 'TRAIN':
             self.preprocess_yolo_training_data()
         else:
-            self.sample_id_list = [int(sample_id) for sample_id in self.image_idx_list]
+            self.sample_id_list = [0] #self.sample_id_list = [int(sample_id) for sample_id in self.image_idx_list]
 
-        print('Load %s samples from %s' % (mode, self.imageset_dir))
-        print('Done: total %s samples %d' % (mode, len(self.sample_id_list)))
+        #print('Load %s samples from %s' % (mode, self.imageset_dir))
+        #print('Done: total %s samples %d' % (mode, len(self.sample_id_list)))
 
     def preprocess_yolo_training_data(self):
         """
@@ -84,7 +85,7 @@ class KittiYOLODataset(KittiDataset):
         sample_id = int(self.sample_id_list[index])
 
         if self.mode in ['TRAIN', 'EVAL']:
-            lidarData = self.get_lidar(sample_id)    
+            lidarData = self.points    
             objects = self.get_label(sample_id)   
             calib = self.get_calib(sample_id)
 
@@ -119,7 +120,7 @@ class KittiYOLODataset(KittiDataset):
             return img_file, img, targets
 
         else:
-            lidarData = self.get_lidar(sample_id)
+            lidarData = self.points
             b = bev_utils.removePoints(lidarData, cnf.boundary)
             rgb_map = bev_utils.makeBVFeature(b, cnf.DISCRETIZATION, cnf.boundary)
             img_file = os.path.join(self.image_path, '%06d.png' % sample_id)
@@ -158,7 +159,7 @@ class KittiYOLO2WayDataset(KittiDataset):
         self.pointcloud = points
 
         #self.sample_id_list = [int(sample_id) for sample_id in self.image_idx_list]
-        self.sample_id_list = [int(self.image_idx_list[-1])]
+        self.sample_id_list = [0]#[int(self.image_idx_list[-1])]  ##this fixes some problems :)
 
     def __getitem__(self, index):
         sample_id = int(self.sample_id_list[index])

@@ -77,7 +77,6 @@ class HUD_WINTERSIM(object):
         default_font = 'ubuntumono'
         mono = default_font if default_font in fonts else fonts[0]
         mono = pygame.font.match_font(mono)
-        self.is_map = False
         self.snow_amount_slider = Slider #sliders
         self.ice_slider = Slider
         self.temp_slider = Slider
@@ -88,7 +87,6 @@ class HUD_WINTERSIM(object):
         self._font_mono = pygame.font.Font(mono, 12 if os.name == 'nt' else 14)
         self._notifications = FadingText(font, (width, 40), (0, height - 40))
         self.help_text = HelpText(pygame.font.Font(mono, 16), width, height, self)
-        self.map = Map(pygame.font.Font(mono, 16), width, height, self)
         self.server_fps = 0
         self.frame = 0
         self.simulation_time = 0
@@ -206,13 +204,6 @@ class HUD_WINTERSIM(object):
 
     def render(self, display, world):
         if self.is_hud:
-            if self.is_map:
-                map_image = pygame.image.load('muonio_map.png')
-                map_rect = map_image.get_rect ()
-                map_rect.center = (960,540)
-                map_image.set_alpha(200)
-                rect = display.get_rect()
-                display.blit(map_image, map_rect) 
             logo = pygame.image.load('WinterSim_White_Color.png')
             logo = pygame.transform.scale(logo, (262,61))
             logo_rect = logo.get_rect()
@@ -254,7 +245,6 @@ class HUD_WINTERSIM(object):
                 v_offset += 18
         self._notifications.render(display)
         self.help_text.render(display)
-        self.map.render(display)
 
 
 # ==============================================================================
@@ -415,50 +405,3 @@ class HelpText(object):
         if self.visible:
             display.blit(self.surface, self.pos)
 
-
-# ==============================================================================
-# -- Map ------------------------------------------------------------------
-# ==============================================================================
-
-
-'''class Map(object):
-    def __init__(self, font,width, height, hud):
-        self.dim = (1080, 1920)
-        self.surface = pygame.Surface(self.dim)
-        self.surface.fill((0, 0, 0, 0))
-        self.surface.set_alpha(200)
-        self.map_image = pygame.image.load('muonio_map.png')
-        self.map_rect = self.map_image.get_rect ()
-        self.map_rect.center = (540,960)
-        #self.map_image.set_alpha(200)
-        self.surface.blit(self.map_image, self.map_rect)
-        self.visible = False 
-
-    def toggle(self):
-        self.visible = not self.visible
-
-    def render(self, display):
-        if self.visible:
-            display.blit(self.surface, self.dim)'''
-
-class Map(object):
-    """Helper class to handle text output using pygame"""
-    def __init__(self, font, width, height, hud):
-        self.dim = (1280, 720)
-        #self.pos = (0.5 * width - 0.5 * self.dim[0], 0.5 * height - 0.5 * self.dim[1])
-        self.seconds_left = 0
-        self.surface = pygame.Surface(self.dim)
-        self.surface.fill((0, 0, 0, 0))
-        self.map_image = pygame.image.load('muonio_map.png')
-        self.map_rect = self.map_image.get_rect ()
-        self.map_rect.center = (540,960)
-        self.surface.blit(self.map_image, self.map_rect)
-        self.visible = False
-        self.surface.set_alpha(220)
-
-    def toggle(self):
-        self.visible = not self.visible
-
-    def render(self, display):
-        if self.visible:
-            display.blit(self.surface, (0,0))

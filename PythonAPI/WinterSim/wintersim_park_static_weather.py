@@ -20,9 +20,9 @@ from matplotlib import cm
 import open3d as o3d
 import math
 import weakref
-import rospy
-from std_msgs.msg import String
-
+import threading
+import time
+from queue import Queue
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -70,7 +70,6 @@ def semantic_lidar_callback(point_cloud, point_list):
     data = np.frombuffer(point_cloud.raw_data, dtype=np.dtype([
         ('x', np.float32), ('y', np.float32), ('z', np.float32),
         ('CosAngle', np.float32), ('ObjIdx', np.uint32), ('ObjTag', np.uint32)]))
-
     # We're negating the y to correclty visualize a world that matches
     # what we see in Unreal since Open3D uses a right-handed coordinate system
     points = np.array([data['x'], -data['y'], data['z']]).T
@@ -90,12 +89,11 @@ def semantic_lidar_callback(point_cloud, point_list):
     point_list.colors = o3d.utility.Vector3dVector(int_color)
 
 
-def lidar_callback(point_cloud, point_list):
+def lidar_callback(point_cloud, point_list, main):
     """Prepares a point cloud with intensity
     colors ready to be consumed by Open3D"""
     data = np.copy(np.frombuffer(point_cloud.raw_data, dtype=np.dtype('f4')))
     data = np.reshape(data, (int(data.shape[0] / 4), 4))
-
     # Isolate the intensity and compute a color for it
     intensity = data[:, -1]
     intensity_col = 1.0 - np.log(intensity) / np.log(np.exp(-0.004 * 100))
@@ -119,31 +117,16 @@ def lidar_callback(point_cloud, point_list):
 
     point_list.points = o3d.utility.Vector3dVector(points)
     point_list.colors = o3d.utility.Vector3dVector(int_color)
+    ##record data
+    if main.record is True:
+        point_cloud.save_to_disk('pointclouds/robosense_pointclouds/%.6d.ply' % point_cloud.frame)
 
 
 def generate_lidar_bp(arg, blueprint_library, delta, is_ouster):
-
-    """Generates a CARLA blueprint based on the script parameters
     if arg.semantic:
         lidar_bp = blueprint_library.find('sensor.lidar.ray_cast_semantic')
-    else:
+    else: 
         lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
-        #if arg.no_noise:
-            #lidar_bp.set_attribute('dropoff_general_rate', '0.0')
-            #lidar_bp.set_attribute('dropoff_intensity_limit', '1.0')
-            #lidar_bp.set_attribute('dropoff_zero_intensity', '0.0')
-        #else:
-            #lidar_bp.set_attribute('noise_stddev', '0.2')
-
-    lidar_bp.set_attribute('upper_fov', str(arg.upper_fov))
-    lidar_bp.set_attribute('lower_fov', str(arg.lower_fov))
-    lidar_bp.set_attribute('channels', str(arg.channels))
-    lidar_bp.set_attribute('range', str(arg.range))
-    lidar_bp.set_attribute('rotation_frequency', str(1.0 / delta))
-    lidar_bp.set_attribute('points_per_second', str(arg.points_per_second))
-    return lidar_bp"""
-
-    lidar_bp = blueprint_library.find('sensor.lidar.ray_cast')
     if is_ouster:
         lidar_bp.set_attribute('upper_fov', str(16.6))
         lidar_bp.set_attribute('lower_fov', str(-16.6))
@@ -151,17 +134,20 @@ def generate_lidar_bp(arg, blueprint_library, delta, is_ouster):
         lidar_bp.set_attribute('range', str(150.0))
         lidar_bp.set_attribute('rotation_frequency', str(1.0 / delta))
         lidar_bp.set_attribute('points_per_second', str(655360.0))
-        lidar_bp.set_attribute('atmosphere_attenuation_rate', str(arg.atmosphere_attenuation_rate))
-        lidar_bp.set_attribute('noise_stddev', str(arg.noise_stddev))
+        if arg.semantic is False:
+            lidar_bp.set_attribute('atmosphere_attenuation_rate', str(arg.atmosphere_attenuation_rate))
+            lidar_bp.set_attribute('noise_stddev', str(arg.noise_stddev))
     else:
         lidar_bp.set_attribute('upper_fov', str(arg.upper_fov))
         lidar_bp.set_attribute('lower_fov', str(arg.lower_fov))
+        lidar_bp.set_attribute('horizontal_fov', str(158))
         lidar_bp.set_attribute('channels', str(arg.channels))
         lidar_bp.set_attribute('range', str(arg.range))
         lidar_bp.set_attribute('rotation_frequency', str(1.0 / delta))
         lidar_bp.set_attribute('points_per_second', str(arg.points_per_second))
-        lidar_bp.set_attribute('atmosphere_attenuation_rate', str(arg.atmosphere_attenuation_rate))
-        lidar_bp.set_attribute('noise_stddev', str(arg.noise_stddev))
+        if arg.semantic is False:
+            lidar_bp.set_attribute('atmosphere_attenuation_rate', str(arg.atmosphere_attenuation_rate))
+            lidar_bp.set_attribute('noise_stddev', str(arg.noise_stddev))
     return lidar_bp
 
 
@@ -234,80 +220,114 @@ class RadarSensor(object):
                 persistent_lines=False,
                 color=carla.Color(255, 0, 0))
 
-def main(arg):
+class main(object):
+    def __init__(self, args):
+        self.record = False
+        self.timestart = 0
+        self.f(args)
+
+    def change(self):
+        self.record = True
+
     """Main function of the script"""
-    client = carla.Client(arg.host, arg.port)
-    client.set_timeout(2.0)
-    world = client.get_world()
+    def f(self, arg):
+        client = carla.Client(arg.host, arg.port)
+        client.set_timeout(5.0)
+        world = client.get_world()
 
-    try:
-        original_settings = world.get_settings()
-        settings = world.get_settings()
-        #traffic_manager = client.get_trafficmanager(8000)
-        #traffic_manager.set_synchronous_mode(True)
+        try:
+            original_settings = world.get_settings()
+            settings = world.get_settings()
 
-        delta = 0.05
+            delta = 0.05
 
-        settings.fixed_delta_seconds = delta
-        settings.synchronous_mode = True
-        world.apply_settings(settings)
+            settings.fixed_delta_seconds = delta
+            settings.synchronous_mode = True
+            world.apply_settings(settings)
 
-        blueprint_library = world.get_blueprint_library()
-        spawn_points = world.get_map().get_spawn_points()
-        robosense_bp = generate_lidar_bp(arg, blueprint_library, delta, False)
-        robosense = world.spawn_actor(robosense_bp, spawn_points[0]) #robo = 0 ouster = 2
+            blueprint_library = world.get_blueprint_library()
+            spawn_points = world.get_map().get_spawn_points()
+            robosense_bp = generate_lidar_bp(arg, blueprint_library, delta, False)
+            robosense = world.spawn_actor(robosense_bp, spawn_points[0]) #robo = 0 ouster = 2
 
-        radar = RadarSensor(blueprint_library, spawn_points[1], world)
+            radar = RadarSensor(blueprint_library, spawn_points[1], world)
 
-        point_list = o3d.geometry.PointCloud()
-        if arg.semantic:
-            robosense.listen(lambda data: semantic_lidar_callback(data, point_list))
-        else:
-            robosense.listen(lambda data: lidar_callback(data, point_list)) 
+            point_list = o3d.geometry.PointCloud()
+            if arg.semantic:
+                robosense.listen(lambda data: semantic_lidar_callback(data, point_list))
+            else:
+                robosense.listen(lambda data: lidar_callback(data, point_list, self)) 
 
-        ##open3d window for robosense
-        vis = o3d.visualization.Visualizer()
-        vis.create_window(
-            window_name='Robosense Lidar',
-            width=960,
-            height=540,
-            left=480,
-            top=270)
-        vis.get_render_option().background_color = [0.05, 0.05, 0.05]
-        vis.get_render_option().point_size = 2
-        vis.get_render_option().show_coordinate_frame = True
+            ##open3d window for robosense
+            vis = o3d.visualization.Visualizer()
+            vis.create_window(
+                window_name='Robosense Lidar',
+                width=960,
+                height=540,
+                left=480,
+                top=270)
+            vis.get_render_option().background_color = [0.05, 0.05, 0.05]
+            vis.get_render_option().point_size = 2
+            vis.get_render_option().show_coordinate_frame = True
 
 
-        if arg.show_axis:
-            add_open3d_axis(vis)
+            if arg.show_axis:
+                add_open3d_axis(vis)
 
-        frame = 0
-        dt0 = datetime.now()
-        while not rospy.is_shutdown():
-            if frame == 2:
-                vis.add_geometry(point_list)
-            vis.update_geometry(point_list)
-
-            vis.poll_events()
-            vis.update_renderer()
-            # # This can fix Open3D jittering issues:
-            time.sleep(0.005)
-            world.tick()
-
-            process_time = datetime.now() - dt0
-            #sys.stdout.write('\r' + 'FPS: ' + str(1.0 / process_time.total_seconds()))
-            #sys.stdout.flush()
+            frame = 0
             dt0 = datetime.now()
-            frame += 1
-            
 
-    finally:
-        world.apply_settings(original_settings)
-        traffic_manager.set_synchronous_mode(False)
-        robosense.destroy()
-        radar.sensor.destroy()
-        vis.destroy_window()
+            ##Thread for input data
+            input_thread = Input(self)
+            input_thread.start()
+            while True:
+                if self.record:
+                    ##start 10 second timer
+                    if self.timestart is 0:
+                        self.timestart = time.time() + 10
+                    if time.time() >= self.timestart and self.timestart is not 0:
+                        print('PointCloud data saved to pointclouds/robosense_pointclouds/')
+                        self.record = False
+                        self.timestart = 0
+                    
+                if frame == 2:
+                    vis.add_geometry(point_list)
+                vis.update_geometry(point_list)
 
+                vis.poll_events()
+                vis.update_renderer()
+                # # This can fix Open3D jittering issues:
+                time.sleep(0.005)
+                world.tick()
+
+                process_time = datetime.now() - dt0
+                #sys.stdout.write('\r' + 'FPS: ' + str(1.0 / process_time.total_seconds()))
+                #sys.stdout.flush()
+                dt0 = datetime.now()
+                frame += 1      
+
+        finally:
+            world.apply_settings(original_settings)
+            robosense.destroy()
+            radar.sensor.destroy()
+            vis.destroy_window()
+
+class Input(threading.Thread):
+    def __init__(self, main):
+        super(Input, self).__init__()
+        self.daemon = True
+        self.input = None
+        self.main = main
+
+    def run(self):
+        while True:
+            ##Get input for recordin
+            if self.main.record is not True:
+                print('')
+                self.input = input('Press enter to save 10 seconds of a PointCloud data')
+                print('Started recording...')
+                self.main.record = True
+            time.sleep(3)
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(

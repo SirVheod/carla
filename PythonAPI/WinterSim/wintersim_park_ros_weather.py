@@ -249,6 +249,7 @@ class Weather(object):
         self.weather.sun_altitude_angle = 30
         self.weather.snow_amount = 0
         self.weather.temperature = float(data[0])
+        self.weather.ice_amount = 0
 
 
 def callback(data, args):

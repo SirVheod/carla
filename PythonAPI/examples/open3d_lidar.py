@@ -63,7 +63,6 @@ def lidar_callback(point_cloud, point_list):
     colors ready to be consumed by Open3D"""
     data = np.copy(np.frombuffer(point_cloud.raw_data, dtype=np.dtype('f4')))
     data = np.reshape(data, (int(data.shape[0] / 4), 4))
-
     # Isolate the intensity and compute a color for it
     intensity = data[:, -1]
     intensity_col = 1.0 - np.log(intensity) / np.log(np.exp(-0.004 * 100))
@@ -280,14 +279,14 @@ if __name__ == "__main__":
         help='actor filter (default: "vehicle.*")')
     argparser.add_argument(
         '--upper-fov',
-        default=15.0,
+        default=2.0,
         type=float,
-        help='lidar\'s upper field of view in degrees (default: 15.0)')
+        help='lidar\'s upper field of view in degrees (default: 2.0)')
     argparser.add_argument(
         '--lower-fov',
-        default=-25.0,
+        default=-24.9,
         type=float,
-        help='lidar\'s lower field of view in degrees (default: -25.0)')
+        help='lidar\'s lower field of view in degrees (default: -24.9)')
     argparser.add_argument(
         '--channels',
         default=64.0,
@@ -295,12 +294,12 @@ if __name__ == "__main__":
         help='lidar\'s channel count (default: 64)')
     argparser.add_argument(
         '--range',
-        default=100.0,
+        default=50.0,
         type=float,
-        help='lidar\'s maximum range in meters (default: 100.0)')
+        help='lidar\'s maximum range in meters (default: 120.0)')
     argparser.add_argument(
         '--points-per-second',
-        default=500000,
+        default=1300000,
         type=int,
         help='lidar\'s points per second (default: 500000)')
     argparser.add_argument(

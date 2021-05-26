@@ -6,6 +6,8 @@ import sys
 import re
 import threading
 import time
+import numpy as np
+from queue import Queue
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -35,6 +37,7 @@ import re
 import weakref
 import wintersim_hud
 import wintersim_control
+from object_detection import test_detection_dev as object_detection
 
 # ==============================================================================
 # -- CollisionSensor -----------------------------------------------------------
@@ -174,36 +177,23 @@ class IMUSensor(object):
 # -- RadarSensor ---------------------------------------------------------------
 # ==============================================================================
 
-def emergency_break(parent_actor):
-        v = parent_actor.get_velocity()
-        speed = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
-        while speed >= 5:
-            v = parent_actor.get_velocity()
-            speed = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
-            control = carla.VehicleControl()
-            control.steer = 0.0
-            control.throttle = 0.0
-            control.brake = 1.0
-            control.hand_brake = False
-            parent_actor.apply_control(control)
-
 class RadarSensor(object):
     def __init__(self, parent_actor):
-        self.object_detection = []
+        #self.opt, self.model = object_detection.main() #osa testi aluetta
+        q = Queue() #osa testi aluetta
+        self.data_thread = RadarObjectDetection(q, args=(False)) #osa testi aluetta
+        self.data_thread.start() #osa testi aluetta
+        self.data_thread.resume()
         self.sensor = None
+        self.points = [] #osa testi aluetta
         self._parent = parent_actor
         self.velocity_range = 7.5 # m/s
         world = self._parent.get_world()
         self.debug = world.debug
         bp = world.get_blueprint_library().find('sensor.other.radar')
-        bp.set_attribute('horizontal_fov', str(35))
-        bp.set_attribute('vertical_fov', str(20))
-        self.sensor = world.spawn_actor(
-            bp,
-            carla.Transform(
-                carla.Location(x=2.8, z=1.0),
-                carla.Rotation(pitch=5)),
-            attach_to=self._parent)
+        bp.set_attribute('horizontal_fov', str(50))
+        #bp.set_attribute('points_per_second', str(5000))
+        self.sensor = world.spawn_actor(bp, carla.Transform(carla.Location(x=2.8, z=1.0)),attach_to=self._parent)
         # We need a weak reference to self to avoid circular reference.
         weak_self = weakref.ref(self)
         self.sensor.listen(
@@ -222,20 +212,16 @@ class RadarSensor(object):
         for detect in radar_data:
             azi = math.degrees(detect.azimuth)
             alt = math.degrees(detect.altitude)
-            obj_azi = detect.azimuth
-            obj_alt = detect.altitude
-            obj_distance = detect.depth
-            obj_velocity = detect.velocity
-
-            if(obj_azi < 0):
-                obj_azi = obj_azi * -1
-
-            obj_offside = math.sin(obj_azi)*obj_distance
-            obj_height = math.sin(obj_alt)*obj_distance
-            v = parent_actor.get_velocity()
-            car_speed = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
-            if 0 < obj_height < 1.5 and obj_offside < 2 and car_speed > 30 and obj_velocity < 0 and obj_distance < 10:
-                emergency_break(parent_actor)
+            
+            theta = math.radians(90 - alt) #here we do some magick by making points from the data given
+            phi = detect.azimuth
+            radius = detect.depth
+            x = radius * math.sin(theta) * math.cos(phi)
+            y = radius * math.sin(theta) * math.sin(phi)
+            z = radius * math.cos(theta)
+            point = [x, -y, z, 1.0] 
+            self.points.append(point) #add newly made point to points array
+            
             # The 0.25 adjusts a bit the distance so the dots can
             # be properly seen
             fw_vec = carla.Vector3D(x=detect.depth - 0.25)
@@ -259,3 +245,45 @@ class RadarSensor(object):
                 life_time=0.06,
                 persistent_lines=False,
                 color=carla.Color(r, g, b))
+        
+        if len(self.points) > 250: #if datapoint array contains atleast 250 points we do object detection 
+            self.points = np.array(self.points) #here we make numpy array
+            self.data_thread.update(self.points) #update detection thread data 
+            self.points = [] #clear points array
+
+
+# ==============================================================================
+# -- thread for radar based object detection() ---------------------------------
+# ==============================================================================
+
+class RadarObjectDetection(threading.Thread): #this is pretty much same as lidar detection thread 
+    def __init__(self, queue, args=(), kwargs=None):
+        threading.Thread.__init__(self, args=(), kwargs=None)
+        self.opt, self.model = object_detection.main()
+        self.queue = queue
+        self.daemon = True
+        self.paused = args
+        self.state = threading.Condition()
+        self.data = None
+
+    def run(self):
+        while True:
+            with self.state:
+                if self.paused:
+                    self.state.wait()  # Block execution until notified.
+            if self.data is not None: #if there is data we run this
+                object_detection.detect(self.opt, self.model, self.data) #detection magick
+
+
+    def pause(self):
+        with self.state:
+            self.paused = True  # Block self.
+
+    def resume(self):
+        with self.state:
+            self.paused = False
+            self.state.notify()  # Unblock self if waiting.
+
+    def update(self, data):
+        with self.state:
+            self.data = data #update data
