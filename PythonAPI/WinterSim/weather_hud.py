@@ -35,7 +35,7 @@ class INFO_HUD(object):
         default_font = 'ubuntumono'
         mono = default_font if default_font in fonts else fonts[0]
         mono = pygame.font.match_font(mono)
-        self.snow_amount_slider = Slider #sliders
+        self.snow_amount_slider = Slider #sliders for updating weather parameters
         self.ice_slider = Slider
         self.temp_slider = Slider
         self.rain_slider = Slider
@@ -141,21 +141,17 @@ class Slider():
         WHITE = (255, 255, 255)
         self.font = pygame.font.SysFont("ubuntumono", 16)
         self.name = name
-        self.val = val  # start value
-        self.val_draw = val
+        self.val = val  # slider start value
+        self.val_draw = val 
         self.maxi = maxi # maximum at slider position right
         self.mini = mini # minimum at slider position left
         self.xpos = 280  # x-location on screen
         self.ypos = pos  # y-location on screen
         self.surf = pygame.surface.Surface((200, 100))
-        #self.surf.set_alpha(200)
         self.hit = False  # the hit attribute indicates slider movement due to mouse interaction
-
         self.txt_surf = self.font.render(name, 1, BLACK)
 
-        # Static graphics - slider background #
-        #self.surf.fill((100, 100, 100))
-        if name is "Temp":
+        if name is "Temp": # temperature slider has different size than other sliders
             pygame.draw.rect(self.surf, ORANGE, [10, 70, 120, 1], 0)
             pygame.draw.rect(self.surf, WHITE, [10, 20, 120, 20], 3)
             pygame.draw.rect(self.surf, WHITE, [10, 20, 120, 20], 0)
@@ -188,8 +184,6 @@ class Slider():
         self.button_surf.fill((1, 1, 1))
         self.button_surf.set_colorkey((1, 1, 1))
         pygame.draw.rect(self.button_surf, WHITE, [6,15,6,15], 0)
-        #pygame.draw.circle(self.button_surf, BLACK, (10, 10), 5, 0)
-        #pygame.draw.circle(self.button_surf, ORANGE, (10, 10), 4, 0)
 
     def draw(self, screen, slider):
         """ Combination of static and dynamic graphics in a copy ofthe basic slide surface"""
@@ -207,12 +201,14 @@ class Slider():
         """The dynamic part; reacts to movement of the slider button."""
         self.val = (pygame.mouse.get_pos()[0] - self.xpos - 10) / 80 * (self.maxi - self.mini) + self.mini
         self.val_draw = self.val
+        #these are the real values of sliders
         if self.val < self.mini:
             self.val = self.mini
         if self.val > 0:
             self.val = self.val /2
         if self.val > self.maxi:
             self.val = self.maxi
+        #these are the values used to draw sliders
         if self.val_draw < self.mini:
             self.val_draw = self.mini
         if self.val_draw > self.maxi * 2:
@@ -259,7 +255,7 @@ class Sun(object):
 class Weather(object):
     def __init__(self, weather):
         self.weather = weather
-        self.sun = Sun(weather.sun_azimuth_angle, weather.sun_altitude_angle) #instantiate sun object and pass angles, clock and month. 
+        self.sun = Sun(weather.sun_azimuth_angle, weather.sun_altitude_angle) #instantiate sun object and pass angles 
 
     def tick(self, hud, preset): #this is called always when slider is being moved
         preset = preset[0]
