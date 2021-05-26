@@ -210,24 +210,24 @@ void ARayCastSemanticLidar::ComputeRawDetection(const FHitResult& HitInfo, const
 
 bool ARayCastSemanticLidar::CalculateNewHitPoint(FHitResult& HitInfo, float rain_amount, FVector end_trace, FVector LidarBodyLoc, FVector distance_to_hit) const
 {
-  FVector max_distance = distance_to_hit; //max_distance = point at 150m (lidar max range)
-  FVector start_point = LidarBodyLoc; //start point is lidar position
+	FVector max_distance = distance_to_hit; //max_distance = point at 150m (lidar max range)
+	FVector start_point = LidarBodyLoc; //start point is lidar position
 	if (HitInfo.bBlockingHit) //If linetrace hits something
 	{
 		max_distance = HitInfo.ImpactPoint; //max_distance = where we got hit with linetrace
 	}
 
-  FVector vector = distance_to_hit - start_point; 
+	FVector vector = distance_to_hit - start_point; 
 	FVector new_start_point = start_point + 0.01 * vector; //make start point away from center of lidar
 	FVector new_vector = max_distance - new_start_point; //new vector from new start point to end point
-  float random = (float) rand()/RAND_MAX; //random floating number between 0-1
-  FVector new_hitpoint = new_start_point + random * new_vector; //Generate new point from new start point to end point
+	float random = (float) rand()/RAND_MAX; //random floating number between 0-1
+	FVector new_hitpoint = new_start_point + random * new_vector; //Generate new point from new start point to end point
 	float distance = FVector::Dist(start_point, new_hitpoint)/100; //distance beteen new_hitpoint and start point (divide by 100 to get meters)
 	
-  float vis = 60 / (2000 - (rain_amount*18.4f));
-  float prob = vis*exp(-pow((distance-20.0f),2.0f)/pow(8.0f,2.0f))+vis*exp(-pow((distance-38.0f),2.0f)/pow(18.0f,2.0f)); //value between 0-1 this is the probability of trace to hit snowflake at certain distances
+	float vis = 60 / (2000 - (rain_amount*18.4f));
+	float prob = vis*exp(-pow((distance-20.0f),2.0f)/pow(8.0f,2.0f))+vis*exp(-pow((distance-38.0f),2.0f)/pow(18.0f,2.0f)); //value between 0-1 this is the probability of trace to hit snowflake at certain distances
 
-  float r = (float)rand() / RAND_MAX; //random between 0-1
+	float r = (float)rand() / RAND_MAX; //random between 0-1
 	if (r < prob) //if random is smaller than probability from formula we hit the trace to snowflake
 	{
 		HitInfo.ImpactPoint = new_hitpoint; //assign new hitpoint
@@ -240,51 +240,51 @@ bool ARayCastSemanticLidar::CalculateNewHitPoint(FHitResult& HitInfo, float rain
 
 bool ARayCastSemanticLidar::ShootLaser(const float VerticalAngle, const float HorizontalAngle, FHitResult& HitResult, FWeatherParameters w) const
 {
-  FCollisionQueryParams TraceParams = FCollisionQueryParams(FName(TEXT("Laser_Trace")), true, this);
-  TraceParams.bTraceComplex = true;
-  TraceParams.bReturnPhysicalMaterial = false;
+	FCollisionQueryParams TraceParams = FCollisionQueryParams(FName(TEXT("Laser_Trace")), true, this);
+	TraceParams.bTraceComplex = true;
+	TraceParams.bReturnPhysicalMaterial = false;
 
-  FHitResult HitInfo(ForceInit);
+	FHitResult HitInfo(ForceInit);
 
-  FTransform ActorTransf = GetTransform();
-  FVector LidarBodyLoc = ActorTransf.GetLocation();
-  FRotator LidarBodyRot = ActorTransf.Rotator();
-  FRotator LaserRot (VerticalAngle, HorizontalAngle, 0);  // float InPitch, float InYaw, float InRoll
-  FRotator ResultRot = UKismetMathLibrary::ComposeRotators(
-    LaserRot,
-    LidarBodyRot
-  );
-  const auto Range = Description.Range;
-  FVector EndTrace = Range * UKismetMathLibrary::GetForwardVector(ResultRot) + LidarBodyLoc;
-  FVector distance_to_hit = 15000 * UKismetMathLibrary::GetForwardVector(ResultRot) + LidarBodyLoc; //range is in cm
+	FTransform ActorTransf = GetTransform();
+	FVector LidarBodyLoc = ActorTransf.GetLocation();
+	FRotator LidarBodyRot = ActorTransf.Rotator();
+	FRotator LaserRot (VerticalAngle, HorizontalAngle, 0);  // float InPitch, float InYaw, float InRoll
+	FRotator ResultRot = UKismetMathLibrary::ComposeRotators(
+		LaserRot,
+		LidarBodyRot
+	);
+	const auto Range = Description.Range;
+	FVector EndTrace = Range * UKismetMathLibrary::GetForwardVector(ResultRot) + LidarBodyLoc;
+	FVector distance_to_hit = 15000 * UKismetMathLibrary::GetForwardVector(ResultRot) + LidarBodyLoc; //range is in cm
 
-  GetWorld()->LineTraceSingleByChannel(
-    HitInfo,
-    LidarBodyLoc,
-    EndTrace,
-    ECC_GameTraceChannel2,
-    TraceParams,
-    FCollisionResponseParams::DefaultResponseParam
-  );
+	GetWorld()->LineTraceSingleByChannel(
+		HitInfo,
+		LidarBodyLoc,
+		EndTrace,
+		ECC_GameTraceChannel2,
+		TraceParams,
+		FCollisionResponseParams::DefaultResponseParam
+	);
 
-  float temp = w.Temperature;
+	float temp = w.Temperature;
 	float rain_amount = w.Precipitation;
-  if (HitInfo.bBlockingHit) { 
-	  if (temp < 0 && rain_amount > 0) //If it is snowing
-	  {
-		  CalculateNewHitPoint(HitInfo, rain_amount, EndTrace, LidarBodyLoc, distance_to_hit);
-	  }
-    HitResult = HitInfo; //equal to new hitpoint or the old one
-    return true;
-  } else { //If no hit is acquired
-    if (temp < 0 && rain_amount > 0) //If it is snowing
-	  {
-		  if(CalculateNewHitPoint(HitInfo, rain_amount, EndTrace, LidarBodyLoc, distance_to_hit)) //if new hitpoint is made
-      {
-        HitResult = HitInfo;
-        return true;
-      }
-	  }
-    return false;
-  }
+	if (HitInfo.bBlockingHit) { 
+		if (temp < 0 && rain_amount > 0) //If it is snowing
+		{
+			CalculateNewHitPoint(HitInfo, rain_amount, EndTrace, LidarBodyLoc, distance_to_hit);
+		}
+		HitResult = HitInfo; //equal to new hitpoint or the old one
+		return true;
+	} else { //If no hit is acquired
+	if (temp < 0 && rain_amount > 0) //If it is snowing
+	{
+		if(CalculateNewHitPoint(HitInfo, rain_amount, EndTrace, LidarBodyLoc, distance_to_hit)) //if new hitpoint is made
+		{
+			HitResult = HitInfo;
+			return true;
+		}
+	}
+	return false;
+	}
 }
