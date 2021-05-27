@@ -371,6 +371,8 @@ def game_loop(args):
         weather = wintersim_hud.Weather(client.get_world().get_weather())   # weather object to update carla weather with sliders
         clock = pygame.time.Clock()
 
+      
+
         while True:
             clock.tick_busy_loop(60)
             if controller.parse_events(client, world, clock, hud_wintersim):
