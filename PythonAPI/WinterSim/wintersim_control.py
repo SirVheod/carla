@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Copyright (c) 2019 Computer Vision Center (CVC) at the Universitat Autonoma de
+# Barcelona (UAB).
+#
+
 # Copyright (c) 2021 FrostBit Software Lab
 
 # This work is licensed under the terms of the MIT license.
@@ -261,7 +265,7 @@ class World(object):
             self.cv2_windows.resume()
 
         if not self.multiple_window_setup and self.multiple_windows_enabled:
-            self.cv2_windows = CameraWindows(self.player, self.camera_manager.sensor, self.world, self.args.record, self.detection)
+            self.cv2_windows = CameraWindows(self.player, self.camera_manager.sensor, self.world)
             self.multiple_window_setup = True
             self.cv2_windows.start()
             self.cv2_windows.pause()

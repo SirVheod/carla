@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Copyright (c) 2019 Computer Vision Center (CVC) at the Universitat Autonoma de
+# Barcelona (UAB).
+#
+
 # Copyright (c) 2021 FrostBit Software Lab
 
 # This work is licensed under the terms of the MIT license.
@@ -146,7 +150,7 @@ class CameraWindows(threading.Thread):
 
         cv2.destroyAllWindows()
 
-    def __init__(self, car, camera, world, record, detection):
+    def __init__(self, ego_vehicle, camera, world):
         super(CameraWindows, self).__init__()
         self.__flag = threading.Event()             # The flag used to pause the thread
         self.__flag.set()                           # Set to True
@@ -155,9 +159,7 @@ class CameraWindows(threading.Thread):
         
         self.camera = camera
         self.world = world
-        self.car = car
-        self.record_images = record
-        self.detection = detection
+        self.car = ego_vehicle
 
         self.front_rgb_camera_display = None
         self.front_rgb_camera = None
