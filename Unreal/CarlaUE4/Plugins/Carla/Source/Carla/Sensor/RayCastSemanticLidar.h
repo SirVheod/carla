@@ -50,7 +50,7 @@ protected:
   void CreateLasers();
 
   /// Updates LidarMeasurement with the points read in DeltaTime.
-  void SimulateLidar(float DeltaTime);
+  void SimulateLidar(const float DeltaTime);
 
   /// Shoot a laser ray-trace, return whether the laser hit something.
   bool ShootLaser(const float VerticalAngle, float HorizontalAngle, FHitResult &HitResult, FWeatherParameters w, std::list<float>& distances, bool& isItDone) const;

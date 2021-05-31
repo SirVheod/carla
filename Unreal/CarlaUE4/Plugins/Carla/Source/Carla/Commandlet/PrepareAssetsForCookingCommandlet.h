@@ -9,9 +9,13 @@
 #include "Carla/OpenDrive/OpenDriveActor.h"
 #include "Commandlets/Commandlet.h"
 #include "Runtime/Engine/Classes/Engine/ObjectLibrary.h"
-
 #include "Runtime/Engine/Classes/Engine/StaticMeshActor.h"
 #include "PrepareAssetsForCookingCommandlet.generated.h"
+
+// undef this API to avoid conflict with UE 4.26
+// (see UE_4.26\Engine\Source\Runtime\Core\Public\Windows\HideWindowsPlatformAtomics.h)
+#undef InterlockedCompareExchange
+#undef _InterlockedCompareExchange
 
 /// Struct containing Package with @a Name and @a bOnlyPrepareMaps flag used to
 /// separate the cooking of maps and props across the different stages (Maps
@@ -70,6 +74,10 @@ public:
   /// structure.
   void LoadWorld(FAssetData &AssetData);
 
+  /// Loads a UWorld object contained in Carla BaseTile into @a AssetData data
+  /// structure.
+  void LoadWorldTile(FAssetData &AssetData);
+
   /// Spawns all the static meshes located in @a AssetsPaths inside the World.
   /// There is an option to use Carla materials by setting @a bUseCarlaMaterials
   /// to true, otherwise it will use RoadRunner materials.
@@ -78,7 +86,9 @@ public:
   /// @pre World is expected to be previously loaded
   TArray<AStaticMeshActor *> SpawnMeshesToWorld(
       const TArray<FString> &AssetsPaths,
-      bool bUseCarlaMaterials);
+      bool bUseCarlaMaterials,
+      int i = -1, 
+      int j = -1);
 
   /// Saves the current World, contained in @a AssetData, into @a DestPath
   /// composed of @a PackageName and with @a WorldName.
@@ -111,6 +121,9 @@ public:
   /// all the props inside the world and saves it in .umap format
   /// in a destination path built from @a PackageName and @a MapDestPath.
   void PreparePropsForCooking(FString &PackageName, const TArray<FString> &PropsPaths, FString &MapDestPath);
+
+  /// Return if there is any tile between the assets to cook
+  bool IsMapInTiles(const TArray<FString> &AssetsPaths);
 
 public:
 
@@ -146,15 +159,15 @@ private:
 
   /// Workaround material for MarkingNodes mesh
   UPROPERTY()
-  UMaterial *MarkingNodeMaterial;
+  UMaterialInstance *MarkingNodeMaterial;
 
   /// Workaround material for the RoadNode mesh
   UPROPERTY()
-  UMaterial *RoadNodeMaterial;
+  UMaterialInstance *RoadNodeMaterial;
 
   /// Workaround material for the second material for the MarkingNodes
   UPROPERTY()
-  UMaterial *MarkingNodeMaterialAux;
+  UMaterialInstance *MarkingNodeMaterialAux;
 
   /// Workaround material for the TerrainNodes
   UPROPERTY()

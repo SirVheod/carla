@@ -24,7 +24,7 @@ namespace PID {
 
 /// This function calculates the present state of the vehicle including
 /// the accumulated integral component of the PID system.
-StateEntry StateUpdate(StateEntry previous_state,
+inline StateEntry StateUpdate(StateEntry previous_state,
                        float current_velocity,
                        float target_velocity,
                        float angular_deviation,
@@ -49,7 +49,7 @@ StateEntry StateUpdate(StateEntry previous_state,
 
 /// This function calculates the actuation signals based on the resent state
 /// change of the vehicle to minimize PID error.
-ActuationSignal RunStep(StateEntry present_state,
+inline ActuationSignal RunStep(StateEntry present_state,
                         StateEntry previous_state,
                         const std::vector<float> &longitudinal_parameters,
                         const std::vector<float> &lateral_parameters) {
@@ -77,7 +77,7 @@ ActuationSignal RunStep(StateEntry present_state,
       lateral_parameters[1] * present_state.deviation_integral +
       lateral_parameters[2] * (present_state.deviation - previous_state.deviation) * INV_DT;
 
-  steer = std::max(-0.8f, std::min(steer, 0.8f));
+  steer = std::max(-STEERING_LIMIT, std::min(steer, STEERING_LIMIT));
 
   return ActuationSignal{throttle, brake, steer};
 }

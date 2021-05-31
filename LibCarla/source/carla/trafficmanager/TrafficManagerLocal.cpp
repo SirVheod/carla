@@ -31,7 +31,6 @@ TrafficManagerLocal::TrafficManagerLocal(
 
     episode_proxy(episode_proxy),
     world(cc::World(episode_proxy)),
-    debug_helper(world.MakeDebugHelper()),
 
     localization_stage(LocalizationStage(vehicle_id_list,
                                          buffer_map,
@@ -41,7 +40,6 @@ TrafficManagerLocal::TrafficManagerLocal(
                                          parameters,
                                          marked_for_removal,
                                          localization_frame,
-                                         debug_helper,
                                          random_devices)),
 
     collision_stage(CollisionStage(vehicle_id_list,
@@ -50,7 +48,6 @@ TrafficManagerLocal::TrafficManagerLocal(
                                    track_traffic,
                                    parameters,
                                    collision_frame,
-                                   debug_helper,
                                    random_devices)),
 
     traffic_light_stage(TrafficLightStage(vehicle_id_list,
@@ -125,6 +122,7 @@ void TrafficManagerLocal::Run() {
   control_frame.reserve(INITIAL_SIZE);
   current_reserved_capacity = INITIAL_SIZE;
 
+  size_t last_frame = 0;
   while (run_traffic_manger.load()) {
 
     bool synchronous_mode = parameters.GetSynchronousMode();
@@ -146,6 +144,15 @@ void TrafficManagerLocal::Run() {
         std::this_thread::sleep_for(time_to_wait);
       }
       previous_update_instance = current_instance;
+    }
+
+    // Stop TM from processing the same frame more than once
+    if (!synchronous_mode) {
+      carla::client::Timestamp timestamp = world.GetSnapshot().GetTimestamp();
+      if (timestamp.frame == last_frame) {
+        continue;
+      }
+      last_frame = timestamp.frame;
     }
 
     std::unique_lock<std::mutex> registration_lock(registration_mutex);
@@ -208,7 +215,9 @@ void TrafficManagerLocal::Run() {
       step_end.store(true);
       step_end_trigger.notify_one();
     } else {
-      episode_proxy.Lock()->ApplyBatch(control_frame, false);
+      if (control_frame.size() > 0){
+        episode_proxy.Lock()->ApplyBatchSync(control_frame, false);
+      }
     }
   }
 }
@@ -276,7 +285,7 @@ void TrafficManagerLocal::Reset() {
   Release();
   episode_proxy = episode_proxy.Lock()->GetCurrentEpisode();
   world = cc::World(episode_proxy);
-  SetupLocalMap();
+  //SetupLocalMap();
   Start();
 }
 
