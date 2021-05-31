@@ -186,35 +186,22 @@ class World(object):
         # Get a vehicle according to arg parameter.
         blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
 
-        # Get the ego vehicle
-        if self.args.scenario:
-            while self.player is None:
-                print("Waiting for the ego vehicle...")
-                time.sleep(1)
-                possible_vehicles = self.world.get_actors().filter('vehicle.*')
-                for vehicle in possible_vehicles:
-                    if vehicle.attributes['role_name'] == "hero":
-                        print("Ego vehicle found")
-                        self.player = vehicle
-                        break
-
-        # Spawn the player (Scenario)
-        if not self.args.scenario:
-            if self.player is not None:
-                spawn_point = self.player.get_transform()
-                spawn_point.location.z += 2.0
-                spawn_point.rotation.roll = 0.0
-                spawn_point.rotation.pitch = 0.0
-                self.destroy()
-                self.player = self.world.try_spawn_actor(blueprint, spawn_point)
-            while self.player is None:
-                if not self.map.get_spawn_points():
-                    print('There are no spawn points available in your map/town.')
-                    print('Please add some Vehicle Spawn Point to your UE4 scene.')
-                    sys.exit(1)
-                spawn_points = self.map.get_spawn_points()
-                spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
-                self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+        # Spawn player
+        if self.player is not None:
+            spawn_point = self.player.get_transform()
+            spawn_point.location.z += 2.0
+            spawn_point.rotation.roll = 0.0
+            spawn_point.rotation.pitch = 0.0
+            self.destroy()
+            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+        while self.player is None:
+            if not self.map.get_spawn_points():
+                print('There are no spawn points available in your map/town.')
+                print('Please add some Vehicle Spawn Point to your UE4 scene.')
+                sys.exit(1)
+            spawn_points = self.map.get_spawn_points()
+            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
+            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
 
         # Set up the sensors
         self.collision_sensor = wintersim_sensors.CollisionSensor(self.player, self.hud_wintersim)
@@ -227,7 +214,6 @@ class World(object):
         actor_type = get_actor_display_name(self.player)
         self.hud_wintersim.notification(actor_type)
         self.multiple_window_setup = False
-        self.detection = True
 
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
@@ -367,7 +353,6 @@ def game_loop(args):
         pygame.display.flip()
 
         hud_wintersim = wintersim_hud.HUD_WINTERSIM(args.width, args.height, display)
-        hud_wintersim.make_sliders()
         world = World(client.get_world(), hud_wintersim, args)
         world.preset = world._weather_presets[0]                            # start weather preset
         hud_wintersim.update_sliders(world.preset[0])                       # update sliders to positions according to preset
@@ -440,17 +425,7 @@ def main():
         '--windows',
         default=False,
         type=bool,
-        help='multiplewindows')
-    argparser.add_argument(
-        '--record',
-        default=False,
-        type=bool,
-        help='record cv2 windows')
-    argparser.add_argument(
-        '--scenario',
-        default=False,
-        type=bool,
-        help='is scenario')
+        help='Enable multiple camera view on startup')
     args = argparser.parse_args()
     args.width, args.height = [int(x) for x in args.res.split('x')]
     log_level = logging.DEBUG if args.debug else logging.INFO

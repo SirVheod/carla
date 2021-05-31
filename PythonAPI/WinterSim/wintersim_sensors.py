@@ -175,16 +175,12 @@ class RadarSensor(object):
         bp = world.get_blueprint_library().find('sensor.other.radar')
         bp.set_attribute('horizontal_fov', str(35))
         bp.set_attribute('vertical_fov', str(20))
-        self.sensor = world.spawn_actor(
-            bp,
-            carla.Transform(
-                carla.Location(x=2.8, z=1.0),
-                carla.Rotation(pitch=5)),
-            attach_to=self._parent)
+        self.sensor = world.spawn_actor(bp,
+            carla.Transform(carla.Location(x=2.8, z=1.0),
+                carla.Rotation(pitch=5)),attach_to=self._parent)
         # We need a weak reference to self to avoid circular reference.
         weak_self = weakref.ref(self)
-        self.sensor.listen(
-            lambda radar_data: RadarSensor._Radar_callback(weak_self, radar_data))
+        self.sensor.listen(lambda radar_data: RadarSensor._Radar_callback(weak_self, radar_data))
 
     @staticmethod
     def _Radar_callback(weak_self, radar_data):
@@ -212,9 +208,6 @@ class RadarSensor(object):
             r = int(clamp(0.0, 1.0, 1.0 - norm_velocity) * 255.0)
             g = int(clamp(0.0, 1.0, 1.0 - abs(norm_velocity)) * 255.0)
             b = int(abs(clamp(- 1.0, 0.0, - 1.0 - norm_velocity)) * 255.0)
-            self.debug.draw_point(
-                radar_data.transform.location + fw_vec,
-                size=0.075,
-                life_time=0.06,
-                persistent_lines=False,
-                color=carla.Color(r, g, b))
+            self.debug.draw_point(radar_data.transform.location + fw_vec,
+                size=0.075,life_time=0.06,
+                persistent_lines=False, color=carla.Color(r, g, b))

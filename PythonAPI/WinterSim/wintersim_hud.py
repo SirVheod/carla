@@ -93,7 +93,7 @@ class HUD_WINTERSIM(object):
         self.rain_slider = Slider
         self.fog_slider = Slider
         self.wind_slider = Slider
-        self.sliders = [] #slider list
+        self.sliders = []
         self._font_mono = pygame.font.Font(mono, 12 if os.name == 'nt' else 14)
         self._notifications = FadingText(font, (width, 40), (0, height - 40))
         self.help_text = HelpText(pygame.font.Font(mono, 16), width, height, self)
@@ -106,6 +106,7 @@ class HUD_WINTERSIM(object):
         self.logo = pygame.image.load('WinterSim_White_Color.png')
         self.logo = pygame.transform.scale(self.logo, (262,61))
         self.logo_rect = self.logo.get_rect()
+        self.make_sliders()
 
     def on_world_tick(self, timestamp):
         self._server_clock.tick()
@@ -123,6 +124,7 @@ class HUD_WINTERSIM(object):
         self.sliders = [self.snow_amount_slider, self.ice_slider, self.temp_slider, self.rain_slider, self.fog_slider, self.wind_slider]
 
     def update_sliders(self, preset):
+        '''Initialize sliders'''
         self.snow_amount_slider.val = preset.snow_amount
         self.ice_slider.val = preset.ice_amount
         self.temp_slider.val = preset.temperature
@@ -131,9 +133,12 @@ class HUD_WINTERSIM(object):
         self.wind_slider.val = preset.wind_intensity*100.0
 
     def tick(self, world, clock, hud_wintersim):
+        '''tick hud'''
         self._notifications.tick(world, clock)
+
         if not self.is_hud:
             return
+        
         t = world.player.get_transform()
         v = world.player.get_velocity()
         c = world.player.get_control()
@@ -152,7 +157,6 @@ class HUD_WINTERSIM(object):
             '',
             'Server:  % 16.0f FPS' % self.server_fps,
             'Client:  % 16.0f FPS' % clock.get_fps(),
-            #'Objdet:  % 16.0f FPS' % clock.get_fps(),
             '',
             'Amount of Snow:  {}'.format(int(hud_wintersim.snow_amount_slider.val)),
             'Iciness:  {}.00%'.format(int(hud_wintersim.ice_slider.val)),
@@ -275,14 +279,12 @@ class Slider():
         self.xpos = pos     # x-location on screen
         self.ypos = 20
         self.surf = pygame.surface.Surface((100, 50))
-        #self.surf.set_alpha(200)
         self.hit = False    # the hit attribute indicates slider movement due to mouse interaction
 
         self.txt_surf = self.font.render(name, 1, BLACK)
         self.txt_rect = self.txt_surf.get_rect(center=(50, 15))
 
         # Static graphics - slider background #
-        #self.surf.fill((100, 100, 100))
         pygame.draw.rect(self.surf, WHITE, [10, 10, 80, 10], 3)
         pygame.draw.rect(self.surf, WHITE, [10, 10, 80, 10], 0)
         pygame.draw.rect(self.surf, ORANGE, [10, 35, 80, 1], 0)
@@ -307,8 +309,6 @@ class Slider():
         self.button_surf.fill((1, 1, 1))
         self.button_surf.set_colorkey((1, 1, 1))
         pygame.draw.rect(self.button_surf, WHITE, [6,15,6,15], 0)
-        #pygame.draw.circle(self.button_surf, BLACK, (10, 10), 5, 0)
-        #pygame.draw.circle(self.button_surf, ORANGE, (10, 10), 4, 0)
 
     def draw(self, screen, slider):
         """ Combination of static and dynamic graphics in a copy ofthe basic slide surface"""
@@ -350,8 +350,9 @@ class Weather(object):
         self.weather.snow_amount = hud_wintersim.snow_amount_slider.val
         self.weather.temperature = hud_wintersim.temp_slider.val
         self.weather.ice_amount = hud_wintersim.ice_slider.val
-    def __str__(self):
-        return '%s %s' % (self._sun, self._storm)
+
+    # def __str__(self):
+    #     return '%s %s' % (self._sun, self._storm)
 
 # ==============================================================================
 # -- FadingText ----------------------------------------------------------------
