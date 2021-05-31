@@ -119,6 +119,8 @@ class World(object):
         self.world.set_weather(weather.weather) #update weather in simulation
 
     def update_friction(self, iciness):
+        '''Update all vehicle wheel frictions.
+        This will stop vehicles if they are moving while changing the value.'''
         actors = self.world.get_actors()
         friction = 5
         friction -= iciness / 100 * 4

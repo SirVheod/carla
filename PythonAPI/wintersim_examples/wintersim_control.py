@@ -63,7 +63,6 @@ import glob
 import os
 import re
 import sys
-import threading
 import time
 
 try:
@@ -75,13 +74,9 @@ except IndexError:
     pass
 
 import argparse
-import collections
-import datetime
 import logging
-import math
 import random
 import re
-import weakref
 
 import carla
 from carla import ColorConverter as cc
@@ -294,6 +289,8 @@ class World(object):
             self.radar_sensor = None
 
     def update_friction(self, iciness):
+        '''Update all vehicle wheel frictions.
+        This will stop vehicles if they are moving while changing the value.'''
         actors = self.world.get_actors()
         friction = 5
         friction -= iciness / 100 * 4
