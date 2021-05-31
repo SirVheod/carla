@@ -87,7 +87,7 @@ class WinterSimHud(object):
         default_font = 'ubuntumono'
         mono = default_font if default_font in fonts else fonts[0]
         mono = pygame.font.match_font(mono)
-        self.snow_amount_slider = Slider #sliders
+        self.snow_amount_slider = Slider
         self.ice_slider = Slider
         self.temp_slider = Slider
         self.rain_slider = Slider
@@ -133,7 +133,7 @@ class WinterSimHud(object):
         self.wind_slider.val = preset.wind_intensity*100.0
 
     def tick(self, world, clock, hud_wintersim):
-        '''tick hud'''
+        '''Tick WinterSim hud'''
         self._notifications.tick(world, clock)
 
         if not self.is_hud:

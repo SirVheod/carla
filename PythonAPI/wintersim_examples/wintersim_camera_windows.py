@@ -38,7 +38,7 @@ VIEW_FOV = 70
 class CameraWindows(threading.Thread):
     """This class handles Wintersim separate camera views.
     This works by spawning separate camera-actors and listening camera callback 
-    which are then displayed in CV2 windows.
+    which are then displayed into separate cv2 windows.
     """
 
     def camera_blueprint(self):
