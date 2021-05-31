@@ -73,11 +73,9 @@ class World(object):
 
     def muonio_weather(self, world):
         weather = weather_hud.Weather(world.world.get_weather()) #create weather object
-        obs = download_stored_query("fmi::observations::weather::multipointcoverage", 
-                            args=["place=muonio"]) #get weather data from muonio
+        obs = download_stored_query("fmi::observations::weather::multipointcoverage", args=["place=muonio"]) #get weather data from muonio
 
-        obs_daily = download_stored_query("fmi::observations::weather::daily::multipointcoverage", 
-                            args=["place=muonio"]) #daily
+        obs_daily = download_stored_query("fmi::observations::weather::daily::multipointcoverage", args=["place=muonio"]) #daily
         
         latest_tstep = max(obs.data.keys()) #latest data
         latest_daily = max(obs_daily.data.keys())
@@ -140,7 +138,6 @@ class World(object):
     def render(self, display): #and here we render the hud
         self.hud.render(display)
 
-
 # ==============================================================================
 # -- KeyboardControl -----------------------------------------------------------
 # ==============================================================================
@@ -186,33 +183,35 @@ def game_loop(args):
         client = carla.Client(args.host, args.port)
         client.set_timeout(2.0)        
 
-        display = pygame.display.set_mode(
-            (args.width, args.height),
-            pygame.HWSURFACE | pygame.DOUBLEBUF)
+        display = pygame.display.set_mode((args.width, args.height), pygame.HWSURFACE | pygame.DOUBLEBUF)
         display.fill((0,0,0))
         pygame.display.flip()
 
-        hud = weather_hud.INFO_HUD(args.width, args.height, display) #hud where we show numbers and all that 
-        hud.make_sliders() # create sliders
-        world = World(client.get_world(), hud, args) #instantiate our world object
-        controller = KeyboardControl() #controller for changing weather presets
-        weather = weather_hud.Weather(client.get_world().get_weather()) #weather object to update carla weather with sliders
-        hud.update_sliders(weather.weather) #update sliders according to preset parameters
+        hud = weather_hud.INFO_HUD(args.width, args.height, display)    # hud where we show numbers and all that 
+        world = World(client.get_world(), hud, args)                    # instantiate our world object
+        controller = KeyboardControl()                                  # controller for changing weather presets
+        weather = weather_hud.Weather(client.get_world().get_weather()) # weather object to update carla weather with sliders
+        hud.update_sliders(weather.weather)                             # update sliders according to preset parameters
         clock = pygame.time.Clock()
 
+        game_world =  client.get_world()
+
         while True:
-            clock.tick_busy_loop(20)
+            clock.tick_busy_loop(30)
             if controller.parse_events(client, world, clock, hud): 
                 return
-            world.tick(clock, hud) #update data
-            world.render(display)  #show data
+            world.tick(clock, hud)
+            world.render(display)
+
             for slider in hud.sliders:
-                if slider.hit: #if slider is being touched
-                    slider.move() #move slider
-                    weather.tick(hud, world._weather_presets[0]) #update weather object
-                    client.get_world().set_weather(weather.weather) #send weather to server
+                if slider.hit:
+                    slider.move()
+                    weather.tick(hud, world._weather_presets[0])
+                    game_world.set_weather(weather.weather)
+                    
             for slider in hud.sliders:
-                slider.draw(display, slider) #move sliders
+                slider.draw(display, slider)
+
             pygame.display.flip()
 
     finally:
@@ -252,7 +251,6 @@ def main():
         game_loop(args)
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
-
 
 if __name__ == '__main__':
     main()

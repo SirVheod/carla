@@ -3,3 +3,4 @@ pygame
 opencv-python
 matplotlib
 requests
+fmiopendata

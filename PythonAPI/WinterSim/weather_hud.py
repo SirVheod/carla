@@ -51,6 +51,9 @@ class INFO_HUD(object):
         self._font_mono = pygame.font.Font(mono, 18 if os.name == 'nt' else 18)
         self._notifications = FadingText(font, (width, 40), (0, height - 40))
         self._info_text = []
+        self.make_sliders()
+        self.months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+        self.sun_positions = [[12.5, 1.36, -43.6],[12.5, 9.25, -35.11],[12.5, 20.13, -24.24],[12.5, 31.99, -12.37],[12.5, 41.03, -2.74],[12.5, 45.39, 1.60],[12.5, 43.51, 0.05],[12.5, 35.97, -8.07],[12.5, 24.94, -19.04],[12.5, 13.44, -30.56],[12.5, 3.66, -40.75],[12.5, -0.56, -45.32]]
 
     def make_sliders(self): #make sliders and add them in to list
         self.temp_slider = Slider("Temp", 0, 40, -40, 20)
@@ -86,9 +89,7 @@ class INFO_HUD(object):
         self.wind_slider.val_draw = preset.wind_intensity*100.0 *2
 
     def get_month(self, val): #get month name and sun position according to month number
-        months = ['January','February','March','April','May','June','July','August','September','October','November','December']
-        sun = [[12.5, 1.36, -43.6],[12.5, 9.25, -35.11],[12.5, 20.13, -24.24],[12.5, 31.99, -12.37],[12.5, 41.03, -2.74],[12.5, 45.39, 1.60],[12.5, 43.51, 0.05],[12.5, 35.97, -8.07],[12.5, 24.94, -19.04],[12.5, 13.44, -30.56],[12.5, 3.66, -40.75],[12.5, -0.56, -45.32]]
-        return months[val], sun[val]
+        return self.months[val], self.sun_positions[val]
 
     def tick(self, world, clock, hud): #update hud text values
         self._notifications.tick(world, clock)
