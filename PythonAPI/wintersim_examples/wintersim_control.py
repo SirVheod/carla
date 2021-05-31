@@ -350,7 +350,7 @@ def game_loop(args):
         display.fill((0,0,0))
         pygame.display.flip()
 
-        hud_wintersim = wintersim_hud.HUD_WINTERSIM(args.width, args.height, display)
+        hud_wintersim = wintersim_hud.WinterSimHud(args.width, args.height, display)
         world = World(client.get_world(), hud_wintersim, args)
         world.preset = world._weather_presets[0]                            # start weather preset
         hud_wintersim.update_sliders(world.preset[0])                       # update sliders to positions according to preset

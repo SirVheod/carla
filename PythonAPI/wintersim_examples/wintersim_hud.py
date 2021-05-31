@@ -74,10 +74,10 @@ import wintersim_control
 import carla
 
 # ==============================================================================
-# -- HUD_WINTERSIM -------------------------------------------------------------
+# -- WinterSimHud -------------------------------------------------------------
 # ==============================================================================
 
-class HUD_WINTERSIM(object):
+class WinterSimHud(object):
     def __init__(self, width, height, display):
         self.dim = (width, height)
         self.screen = display
