@@ -48,7 +48,7 @@ Use ARROWS or WASD keys for control.
 
 
     F1           : toggle HUD
-    F8           : Spawn  separate front and back camera windows
+    F8           : spawn separate front and back camera windows
     H/?          : toggle help
     ESC          : quit;
 """
@@ -304,11 +304,10 @@ class World(object):
                 front_right_wheel = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=70.0, radius=20.0)
                 rear_left_wheel   = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=0.0,  radius=20.0)
                 rear_right_wheel  = carla.WheelPhysicsControl(tire_friction=friction, damping_rate=1.3, max_steer_angle=0.0,  radius=20.0)
-
                 wheels = [front_left_wheel, front_right_wheel, rear_left_wheel, rear_right_wheel]
+
                 physics_control = vehicle.get_physics_control()
                 physics_control.wheels = wheels
-
                 vehicle.apply_physics_control(physics_control)
 
     def destroy_sensors(self):
@@ -322,8 +321,7 @@ class World(object):
 
         if self.radar_sensor is not None:
             self.toggle_radar()
-        sensors = [
-            self.camera_manager.sensor,
+        sensors = [self.camera_manager.sensor,
             self.collision_sensor.sensor,
             self.lane_invasion_sensor.sensor,
             self.gnss_sensor.sensor,

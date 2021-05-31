@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Copyright (c) 2019 Computer Vision Center (CVC) at the Universitat Autonoma de
+# Barcelona (UAB).
+#
+
 # Copyright (c) 2021 FrostBit Software Lab
 
 # This work is licensed under the terms of the MIT license.
@@ -135,8 +139,19 @@ class World(object):
     def tick(self, clock, hud): #here we update huds data
         self.hud.tick(self, clock, hud)
 
-    def render(self, display): #and here we render the hud
+    def render(self, world, client, hud, display, weather):
         self.hud.render(display)
+        self.render_sliders(world, client, hud, display, weather)
+        
+    def render_sliders(self, world, client, hud, display, weather):
+        for slider in hud.sliders:
+            if slider.hit:
+                slider.move()
+                weather.tick(hud, world._weather_presets[0])
+                client.get_world().set_weather(weather.weather)
+                    
+        for slider in hud.sliders:
+            slider.draw(display, slider)
 
 # ==============================================================================
 # -- KeyboardControl -----------------------------------------------------------
@@ -194,24 +209,12 @@ def game_loop(args):
         hud.update_sliders(weather.weather)                             # update sliders according to preset parameters
         clock = pygame.time.Clock()
 
-        game_world =  client.get_world()
-
         while True:
-            clock.tick_busy_loop(30)
+            clock.tick_busy_loop(30)                                    # set this PyGame window to render 30 FPS
             if controller.parse_events(client, world, clock, hud): 
                 return
             world.tick(clock, hud)
-            world.render(display)
-
-            for slider in hud.sliders:
-                if slider.hit:
-                    slider.move()
-                    weather.tick(hud, world._weather_presets[0])
-                    game_world.set_weather(weather.weather)
-                    
-            for slider in hud.sliders:
-                slider.draw(display, slider)
-
+            world.render(world, client, hud, display, weather)
             pygame.display.flip()
 
     finally:
