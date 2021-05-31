@@ -84,10 +84,15 @@ void export_weather() {
   cls.attr("MidRainSunset") = cr::WeatherParameters::MidRainSunset;
   cls.attr("HardRainSunset") = cr::WeatherParameters::HardRainSunset;
   cls.attr("SoftRainSunset") = cr::WeatherParameters::SoftRainSunset;
+
+  cls.attr("WinterMorning") = cr::WeatherParameters::WinterMorning;
+  cls.attr("WinterNoon") = cr::WeatherParameters::WinterNoon;
+  cls.attr("WinterCloudyNoon") = cr::WeatherParameters::WinterCloudyNoon;
+  cls.attr("WinterNight") = cr::WeatherParameters::WinterNight;
   cls.attr("SoftSnowNoon") = cr::WeatherParameters::SoftSnowNoon;
   cls.attr("MidSnowNoon") = cr::WeatherParameters::MidSnowNoon;
   cls.attr("HardSnowNoon") = cr::WeatherParameters::HardSnowNoon;
-  cls.attr("SoftSnowSunset") = cr::WeatherParameters::SoftSnowSunset;
-  cls.attr("MidSnowSunset") = cr::WeatherParameters::MidSnowSunset;
-  cls.attr("HardSnowSunset") = cr::WeatherParameters::HardSnowSunset;
+  cls.attr("SoftSnowMorning") = cr::WeatherParameters::SoftSnowMorning;
+  cls.attr("MidSnowMorning") = cr::WeatherParameters::MidSnowMorning;
+  cls.attr("HardSnowMorning") = cr::WeatherParameters::HardSnowMorning;
 }
