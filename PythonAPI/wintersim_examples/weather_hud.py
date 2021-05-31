@@ -70,32 +70,35 @@ class InfoHud(object):
         self.month_slider = Slider("Month", 0, 11, 0, 860)
         self.sliders = [self.temp_slider, self.snow_amount_slider, self.ice_slider, self.rain_slider, self.fog_slider, self.wind_slider, self.time_slider, self.month_slider]
 
-    def update_sliders(self, preset, month=None, clock=None): #update slider positions if weather is changed without moving sliders
-        ##real values
+    def update_sliders(self, preset, month=None, clock=None):
         self.snow_amount_slider.val = preset.snow_amount
         self.ice_slider.val = preset.ice_amount
         self.temp_slider.val = preset.temperature
         self.rain_slider.val = preset.precipitation
         self.fog_slider.val = preset.fog_density
-        self.wind_slider.val = preset.wind_intensity*100.0
+        self.wind_slider.val = preset.wind_intensity * 100.0
+
         if month and clock:
             self.month_slider.val = month
             self.time_slider.val = clock
-            self.month_slider.val_draw = month*2
-            self.time_slider.val_draw = clock*2
-        ##values that are used to draw sliders must be multiplied by 2
-        self.snow_amount_slider.val_draw = preset.snow_amount*2
-        if preset.ice_amount > 0:
-            self.ice_slider.val_draw = preset.ice_amount*2
-        self.temp_slider.val_draw = preset.temperature*2
-        self.rain_slider.val_draw = preset.precipitation*2
-        self.fog_slider.val_draw = preset.fog_density*2
-        self.wind_slider.val_draw = preset.wind_intensity*100.0 *2
+            self.month_slider.val_draw = month * 2
+            self.time_slider.val_draw = clock * 2
 
-    def get_month(self, val): #get month name and sun position according to month number
+        # values that are used to draw sliders must be multiplied by 2
+        self.snow_amount_slider.val_draw = preset.snow_amount * 2
+        if preset.ice_amount > 0:
+            self.ice_slider.val_draw = preset.ice_amount * 2
+        self.temp_slider.val_draw = preset.temperature * 2
+        self.rain_slider.val_draw = preset.precipitation * 2
+        self.fog_slider.val_draw = preset.fog_density * 2
+        self.wind_slider.val_draw = preset.wind_intensity * 100.0 * 2
+
+    def get_month(self, val): 
+        '''Get month name and sun position according to month number'''
         return self.months[val], self.sun_positions[val]
 
-    def tick(self, world, clock, hud): #update hud text values
+    def tick(self, world, clock, hud): 
+        '''Update hud text values'''
         self._notifications.tick(world, clock)
         month, sundata = self.get_month(int(hud.month_slider.val))
         self._info_text = [
@@ -121,10 +124,11 @@ class InfoHud(object):
             'Press M to get',
             'weather from Muonio']
 
-    def notification(self, text, seconds=2.0): #notification about changing weather preset
+    def notification(self, text, seconds=2.0):
         self._notifications.set_text(text, seconds=seconds)
 
-    def render(self, display): #render hud texts into pygame window
+    def render(self, display): 
+        '''Render hud texts into pygame window'''
         info_surface = pygame.Surface((270, self.dim[1]))
         info_surface.set_alpha(100)
         info_surface.fill((75, 75, 75))
@@ -249,7 +253,8 @@ class Sun(object):
             self.altitude = (Y * A) + ((1-Y) * B)
         self.azimuth = 348.98 + clock * 15
         if self.azimuth > 360: 
-            self.azimuth -= 360    
+            self.azimuth -= 360  
+              
     def __str__(self):
         return 'Sun(alt: %.2f, azm: %.2f)' % (self.altitude, self.azimuth)
 
