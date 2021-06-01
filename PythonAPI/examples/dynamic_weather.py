@@ -99,6 +99,9 @@ class Weather(object):
         self.weather.wetness = self._storm.wetness
         self.weather.sun_azimuth_angle = self._sun.azimuth
         self.weather.sun_altitude_angle = self._sun.altitude
+        self.weather.snow_amount = 0
+        self.weather.temperature = 0
+        self.weather.ice_amount = 0
 
     def __str__(self):
         return '%s %s' % (self._sun, self._storm)

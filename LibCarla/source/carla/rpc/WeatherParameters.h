@@ -37,6 +37,17 @@ namespace rpc {
     static WeatherParameters HardRainSunset;
     static WeatherParameters SoftRainSunset;
 
+	static WeatherParameters WinterMorning;
+	static WeatherParameters WinterNoon;
+	static WeatherParameters WinterCloudyNoon;
+	static WeatherParameters WinterNight;
+    static WeatherParameters SoftSnowNoon;    
+    static WeatherParameters MidSnowNoon;
+    static WeatherParameters HardSnowNoon;
+    static WeatherParameters SoftSnowMorning;
+    static WeatherParameters MidSnowMorning;
+    static WeatherParameters HardSnowMorning;
+
     /// @}
 
     WeatherParameters() = default;
@@ -51,7 +62,10 @@ namespace rpc {
         float in_fog_density,
         float in_fog_distance,
         float in_fog_falloff,
-        float in_wetness)
+        float in_wetness,
+        float in_snow_amount,
+        float in_temperature,
+        float in_ice_amount)
       : cloudiness(in_cloudiness),
         precipitation(in_precipitation),
         precipitation_deposits(in_precipitation_deposits),
@@ -61,7 +75,10 @@ namespace rpc {
         fog_density(in_fog_density),
         fog_distance(in_fog_distance),
         fog_falloff(in_fog_falloff),
-        wetness(in_wetness) {}
+        wetness(in_wetness), 
+        snow_amount(in_snow_amount),
+        temperature(in_temperature),
+        ice_amount(in_ice_amount) {}
 
     float cloudiness = 0.0f;
     float precipitation = 0.0f;
@@ -73,6 +90,9 @@ namespace rpc {
     float fog_distance = 0.0f;
     float fog_falloff = 0.0f;
     float wetness = 0.0f;
+    float snow_amount = 0.0f;
+    float temperature = 0.0f;
+    float ice_amount = 0.0f;
 
 #ifdef LIBCARLA_INCLUDED_FROM_UE4
 
@@ -86,7 +106,10 @@ namespace rpc {
         fog_density(Weather.FogDensity),
         fog_distance(Weather.FogDistance),
         fog_falloff(Weather.FogFalloff),
-        wetness(Weather.Wetness) {}
+        wetness(Weather.Wetness),
+        snow_amount(Weather.SnowAmount),
+        temperature(Weather.Temperature),
+        ice_amount(Weather.IceAmount) {}
 
     operator FWeatherParameters() const {
       FWeatherParameters Weather;
@@ -100,6 +123,9 @@ namespace rpc {
       Weather.FogDistance = fog_distance;
       Weather.FogFalloff = fog_falloff;
       Weather.Wetness = wetness;
+      Weather.SnowAmount = snow_amount;
+      Weather.Temperature = temperature;
+      Weather.IceAmount = ice_amount;
       return Weather;
     }
 
@@ -116,7 +142,10 @@ namespace rpc {
           fog_density != rhs.fog_density ||
           fog_distance != rhs.fog_distance ||
           fog_falloff != rhs.fog_falloff ||
-          wetness != rhs.wetness;
+          wetness != rhs.wetness ||
+          snow_amount != rhs.snow_amount ||
+          temperature != rhs.temperature ||
+          ice_amount != rhs.ice_amount;
     }
 
     bool operator==(const WeatherParameters &rhs) const {
@@ -133,7 +162,10 @@ namespace rpc {
         fog_density,
         fog_distance,
         fog_falloff,
-        wetness);
+        wetness,
+        snow_amount,
+        temperature,
+        ice_amount);
   };
 
 } // namespace rpc
